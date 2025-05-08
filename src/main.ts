@@ -1,13 +1,12 @@
 import * as crypto from "crypto";
 import * as readline from "readline";
+import { createHashRingRelabalancer } from "./redis";
 
 function generateMD5Hash(key: string) {
 	return crypto.createHash("md5").update(key).digest("base64");
 }
 
 async function main() {
-	console.log("Main is running...");
-
 	const rl = readline.createInterface({
 		input: process.stdin,
 		output: process.stdout,
@@ -40,6 +39,13 @@ async function main() {
 		console.log("Input stream closed");
 		// TODO: Log the hash ring to stdout
 	});
+
+  const interval = createHashRingRelabalancer();
+
+  process.on("SIGINT", () => {
+    clearInterval(interval);
+    rl.close();
+  });
 }
 
 main().catch((error) =>
