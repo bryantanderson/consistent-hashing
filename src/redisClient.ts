@@ -1,6 +1,6 @@
 import { Redis } from 'ioredis';
 
-let nodeCountToRedisClient: Map<number, Redis> = new Map();
+let nodeCountToRedisClient: Map<string, Redis> = new Map();
 
 const STANDARD_REDIS_PORT = 6379;
 
@@ -12,14 +12,15 @@ function getRedisPortFromNodeCount(nodeCount: number) {
 // In a real-world scenario, we would have a more robust method to discover the IP addresses
 // of the Redis nodes (ex: Kubernetes svc, service discovery, etc.)
 function getRedisNode(nodeCount: number) {
-  if (nodeCountToRedisClient.has(nodeCount)) {
-    return nodeCountToRedisClient.get(nodeCount);
+  const key = `redis-node-${nodeCount}`;
+  if (nodeCountToRedisClient.has(key)) {
+    return nodeCountToRedisClient.get(key);
   }
   const redisClient = new Redis({
     host: "localhost",
     port: getRedisPortFromNodeCount(nodeCount),
   });
-  nodeCountToRedisClient.set(nodeCount, redisClient);
+  nodeCountToRedisClient.set(key, redisClient);
   return redisClient;
 }
 
