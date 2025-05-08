@@ -14,5 +14,8 @@
   ],
   "dependencies": {
     "ioredis": "^5.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.17"
   }
 }
