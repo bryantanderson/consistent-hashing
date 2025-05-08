@@ -1,0 +1,13 @@
+{
+	"editor.formatOnSave": true,
+	"editor.tabSize": 2,
+	"editor.insertSpaces": true,
+	"editor.detectIndentation": false,
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"[typescript]": {
+		"editor.codeActionsOnSave": {
+			"source.organizeImports": "always",
+			"source.fixAll.eslint": "always"
+		}
+	}
+}
