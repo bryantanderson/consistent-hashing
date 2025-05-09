@@ -1,8 +1,5 @@
 import { Redis } from "ioredis";
-import {
-	NODE_STATES,
-	PING_FAILURE_THRESHOLD,
-} from "./constants";
+import { NODE_STATES, PING_FAILURE_THRESHOLD } from "./constants";
 import { HashRingNode, PhysicalNode } from "./types";
 import { generateHash, visualizeHashRing } from "./utils";
 
@@ -14,9 +11,12 @@ class HashRing {
 	constructor() {
 		this.ring = [];
 		this.verboseLog = process.env.VERBOSE_LOGGING_ENABLED !== "false";
+		// In a production environment, the data structure is stored on a centralized highly available service.
+		// Alternatively, the data structure is stored on each node, and the state information between the nodes
+		// is synchronized through the gossip protocol
 		this.physicalNodes = new Map();
 
-    const physicalNodeCount = parseInt(process.env.PHYSICAL_NODES ?? "3");
+		const physicalNodeCount = parseInt(process.env.PHYSICAL_NODES ?? "3");
 
 		for (let i = 0; i < physicalNodeCount; i++) {
 			this.physicalNodes.set(
@@ -88,16 +88,20 @@ class HashRing {
 		}
 	}
 
-  addNode(node: PhysicalNode) {
-    console.log(`Physical node ${node.nodeId} added. Redistributing keys...`);
-    // TODO: Add node to ring. The keys that fall in the range of the subsequent node in the clockwise direction
-    // and also in the range of the new node should be moved to the new node
-  }
+	addNode(node: PhysicalNode) {
+		console.log(
+			`Physical node ${node.nodeId} added. Redistributing keys...`
+		);
+		// TODO: Add node to ring. The keys that fall in the range of the subsequent node in the clockwise direction
+		// and also in the range of the new node should be moved to the new node
+	}
 
 	removeNode(failedNode: PhysicalNode) {
-		console.log(`Physical node ${failedNode.nodeId} has failed. Redistributing keys...`);
-    // TODO: Remove node from ring. The keys that belonged to this node and it's virtual nodes should be
-    // redistributed to the next node in the clockwise direction.
+		console.log(
+			`Physical node ${failedNode.nodeId} has failed. Redistributing keys...`
+		);
+		// TODO: Remove node from ring. The keys that belonged to this node and it's virtual nodes should be
+		// redistributed to the next node in the clockwise direction.
 	}
 
 	private getPhysicalNode(key: string) {
@@ -118,7 +122,7 @@ class HashRing {
 		}
 
 		// Use binary search to find the next node clockwise in the ring
-    // Could also use linear search but that's O(n) compared to O(log n)
+		// Could also use linear search but that's O(n) compared to O(log n)
 		let low = 0;
 		let high = this.ring.length - 1;
 
@@ -143,7 +147,9 @@ class HashRing {
 	private createVirtualNodes() {
 		this.ring = [];
 
-    const virtualNodeCount = parseInt(process.env.VIRTUAL_NODE_COUNT ?? "5");
+		const virtualNodeCount = parseInt(
+			process.env.VIRTUAL_NODE_COUNT ?? "5"
+		);
 
 		// Generate hashes for the address / identifier of each node
 		// and push the hashes onto the ring
