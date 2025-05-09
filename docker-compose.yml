@@ -42,6 +42,16 @@ services:
       interval: 1s
       timeout: 5s
       retries: 5
+  
+  node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - redis-1
+      - redis-2
+      - redis-3
+      
 
 volumes:
   redis-data-1:
