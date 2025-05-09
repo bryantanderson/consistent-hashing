@@ -2,11 +2,19 @@
 
 [High Scalability's article on Consistent Hashing](https://highscalability.com/consistent-hashing-algorithm/)
 
-Consistent hashing is a distributed systems technique that operates by assigning the data objects and nodes a position on a virtual ring structure (hash ring). Consistent hashing minimizes the number of keys to be remapped when the total number of nodes changes
+Consistent hashing is a distributed systems technique that operates by assigning the data objects and nodes a position on a virtual ring structure (hash ring). Consistent hashing minimizes the number of keys to be remapped when the total number of nodes changes.
 
-The key of a data object is hashed using the same hash function to locate the position of the key on the hash ring. The hash ring is traversed in the clockwise direction starting from the position of the key until a node is found. The data object is stored on the node that was found. 
+Both nodes and data keys are mapped to positions on a hash ring using the same hash function. To find where a key should be stored, the system:
+- Calculates the hash position of the key
+- Traverses the hash ring clockwise from the key
+- Places the data on the first node encountered during the clockwise traversal
 
-In simple words, the first node with a position value greater than the position of the key stores the data object
+With this approach, node addition or removal means that only the keys that fall between the affected node and it's predecessor need to be redistributed.
+
+To improve load balancing, each physical node is represented as multiple "virtual nodes" on the ring:
+- Each physical node is assigned multiple positions on the ring
+- This spreads the node's responsibility across different segments of the ring
+- When a node fails, its keys are distributed more evenly among remaining nodes. Hence it significantly reduces hot spots and balances load distribution
 
 ## Implementation detail
 

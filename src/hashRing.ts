@@ -2,7 +2,7 @@ import * as crypto from "crypto";
 import { Redis } from "ioredis";
 import { CacheNode, HashRingNode } from "./types";
 
-// const VIRTUAL_NODE_COUNT = 100;
+const VIRTUAL_NODE_COUNT = 5;
 const PING_FAILURE_THRESHOLD = 3;
 
 function generateHash(key: string) {
@@ -273,11 +273,14 @@ class HashRing {
 		// Generate hashes for the address / identifier of each node
 		// and push the hashes onto the ring
 		for (const n of this.activeCacheNodes) {
-			const position = generateHash(n.nodeKey);
-			this.ring.push({
-				position,
-				cacheNodeKey: n.nodeKey,
-			});
+			// For each node, generate virtual nodes
+			for (let i = 0; i < VIRTUAL_NODE_COUNT; i++) {
+				const position = generateHash(`${n.nodeKey}-virtual-${i}`);
+				this.ring.push({
+					position,
+					cacheNodeKey: n.nodeKey,
+				});
+			}
 		}
 
 		// Sort the ring by the position of the hashes
