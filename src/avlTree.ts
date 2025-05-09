@@ -174,6 +174,8 @@ class AVLTree {
 		this.root = this.insertNode(this.root, key);
 		return this.root;
 	}
+
+  // TODO: Pre-order traversal functions
 }
 
 export { AVLTree };
