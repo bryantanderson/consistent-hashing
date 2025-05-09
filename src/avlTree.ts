@@ -60,64 +60,64 @@ class AVLTree {
 		return 1 + Math.max(leftChildHeight, rightChildHeight);
 	}
 
-  // Rotations preserve the BST property (left < root < right). The fundamental goal of a rotation 
-  // is to reduce the overall height of an imbalanced branch.
-  //
-  // The in order traversal of the BST (left, root, right) must be the same before and after the rotation.
-  //
-  // In a right rotation, the left child becomes the new root, effectively reducing the depth of the left subtree.
-  //
-  // In a left rotation, the right child becomes the new root, reducing the depth of the right subtree.
+	// Rotations preserve the BST property (left < root < right). The fundamental goal of a rotation
+	// is to reduce the overall height of an imbalanced branch.
+	//
+	// The in order traversal of the BST (left, root, right) must be the same before and after the rotation.
+	//
+	// In a right rotation, the left child becomes the new root, effectively reducing the depth of the left subtree.
+	//
+	// In a left rotation, the right child becomes the new root, reducing the depth of the right subtree.
 
-  // Visual representation of a right rotation:
-  //     y           x
-  //    / \         / \
-  //   x   T3  ->  T1  y
-  //  / \             / \
-  // T1  T2          T2  T3
+	// Visual representation of a right rotation:
+	//     y           x
+	//    / \         / \
+	//   x   T3  ->  T1  y
+	//  / \             / \
+	// T1  T2          T2  T3
 	private rightRotate(y: AVLTreeNode) {
-    if (!y.leftChild) {
-      return y;
-    }
-    const x = y.leftChild;
-    const T2 = x.rightChild;
+		if (!y.leftChild) {
+			return y;
+		}
+		const x = y.leftChild;
+		const T2 = x.rightChild;
 
-    x.rightChild = y;
-    y.leftChild = T2;
+		x.rightChild = y;
+		y.leftChild = T2;
 
-    y.height = this.computeNodeHeightFromChildren(y);
-    x.height = this.computeNodeHeightFromChildren(x);
+		y.height = this.computeNodeHeightFromChildren(y);
+		x.height = this.computeNodeHeightFromChildren(x);
 
-    // Return the new root
+		// Return the new root
 		return x;
 	}
 
-  // Visual representation of a left rotation:
-  //   x               y
-  //  / \             / \
-  // T1  y     ->    x   T3
-  //    / \         / \
-  //   T2  T3      T1  T2
+	// Visual representation of a left rotation:
+	//   x               y
+	//  / \             / \
+	// T1  y     ->    x   T3
+	//    / \         / \
+	//   T2  T3      T1  T2
 	private leftRotate(x: AVLTreeNode) {
-    if (!x.rightChild) {
-      return x;
-    }
-    const y = x.rightChild;
-    const T2 = y.leftChild;
-    
-    y.leftChild = x;
-    x.rightChild = T2;
+		if (!x.rightChild) {
+			return x;
+		}
+		const y = x.rightChild;
+		const T2 = y.leftChild;
 
-    x.height = this.computeNodeHeightFromChildren(x);
-    y.height = this.computeNodeHeightFromChildren(y);
+		y.leftChild = x;
+		x.rightChild = T2;
 
-    // Return the new root
+		x.height = this.computeNodeHeightFromChildren(x);
+		y.height = this.computeNodeHeightFromChildren(y);
+
+		// Return the new root
 		return y;
 	}
 
 	// Explanation: https://www.geeksforgeeks.org/insertion-in-an-avl-tree/
 	private insertNode(node: AVLTreeNode | null, key: string) {
-    // Base case: If the node is null, we insert a new node in this position
+		// Base case: If the node is null, we insert a new node in this position
 		if (node === null) {
 			return new AVLTreeNode(key);
 		}
@@ -140,31 +140,31 @@ class AVLTree {
 		// between the heights of the left and right subtrees is no longer <= 1. (AVL condition)
 		const balance = node.subTreeHeightDifference;
 
-    // Left Left case, where the inserted node ends up on the left subtree
-    // of the node's left child node
+		// Left Left case, where the inserted node ends up on the left subtree
+		// of the node's left child node
 		if (balance > 1 && node.leftChild && key < node.leftChild.key) {
 			return this.rightRotate(node);
 		}
 
-    // Left Right case, where the inserted node ends up on the right subtree
-    // of the node's left child node
+		// Left Right case, where the inserted node ends up on the right subtree
+		// of the node's left child node
 		if (balance > 1 && node.leftChild && key > node.leftChild.key) {
 			node.leftChild = this.leftRotate(node.leftChild);
 			return this.rightRotate(node);
 		}
 
-    // Right Right case, where the inserted node ends up on the right subtree
-    // of the node's right child node
-    if (balance < -1 && node.rightChild && key > node.rightChild.key) {
-      return this.leftRotate(node);
-    }
+		// Right Right case, where the inserted node ends up on the right subtree
+		// of the node's right child node
+		if (balance < -1 && node.rightChild && key > node.rightChild.key) {
+			return this.leftRotate(node);
+		}
 
-    // Right Left case, where the inserted node ends up on the left subtree
-    // of the node's right child node
-    if (balance < -1 && node.rightChild && key < node.rightChild.key) {
-      node.rightChild = this.rightRotate(node.rightChild);
-      return this.leftRotate(node);
-    }
+		// Right Left case, where the inserted node ends up on the left subtree
+		// of the node's right child node
+		if (balance < -1 && node.rightChild && key < node.rightChild.key) {
+			node.rightChild = this.rightRotate(node.rightChild);
+			return this.leftRotate(node);
+		}
 
 		// Return the unchanged node pointer
 		return node;
