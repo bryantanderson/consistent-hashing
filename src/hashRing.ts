@@ -88,8 +88,16 @@ class HashRing {
 		}
 	}
 
-	private rebalance(failedNode: PhysicalNode) {
+  addNode(node: PhysicalNode) {
+    console.log(`Physical node ${node.nodeId} added. Redistributing keys...`);
+    // TODO: Add node to ring. The keys that fall in the range of the subsequent node in the clockwise direction
+    // and also in the range of the new node should be moved to the new node
+  }
+
+	removeNode(failedNode: PhysicalNode) {
 		console.log(`Physical node ${failedNode.nodeId} has failed. Redistributing keys...`);
+    // TODO: Remove node from ring. The keys that belonged to this node and it's virtual nodes should be
+    // redistributed to the next node in the clockwise direction.
 	}
 
 	private getPhysicalNode(key: string) {
@@ -169,7 +177,7 @@ class HashRing {
 					// If the node is inactive, hide it from the hash ring and rebalance
 					if (node.pingFailures >= PING_FAILURE_THRESHOLD) {
 						node.state = NODE_STATES.INACTIVE;
-						this.rebalance(node);
+						this.removeNode(node);
 						continue;
 					}
 					node.pingFailures++;
