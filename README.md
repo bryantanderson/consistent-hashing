@@ -12,6 +12,7 @@ In simple words, the first node with a position value greater than the position 
 
 This project uses MD5 as the hashing function, and uses 3 Redises as the cache "nodes". To start the project, run:
 
-`docker compose -f docker-compose.yml up` or `npm run dev`
+`docker compose -f docker-compose.yml up` OR
+`npm run dev:redises` in one terminal, and `npm run dev` in a different terminal
 
 Once all the redises are up and running, write to standard input of the node application. All values written to stdin will be treated as values, with the exception of the string `PRINT_HASH_RING` which will trigger printing of the current state of the hash ring to standard output.
