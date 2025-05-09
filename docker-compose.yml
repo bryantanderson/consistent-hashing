@@ -1,6 +1,7 @@
 services:
   redis-1:
     image: redis:latest
+    network_mode: host
     restart: always
     command: redis-server --port 6379 --save 20 1 --loglevel warning
     ports:
@@ -15,6 +16,7 @@ services:
 
   redis-2:
     image: redis:latest
+    network_mode: host
     restart: always
     command: redis-server --port 6380 --save 20 1 --loglevel warning
     ports:
@@ -29,6 +31,7 @@ services:
 
   redis-3:
     image: redis:latest
+    network_mode: host
     restart: always
     command: redis-server --port 6381 --save 20 1 --loglevel warning
     ports:
@@ -45,6 +48,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    network_mode: host
     depends_on:
       - redis-1
       - redis-2
@@ -54,7 +58,3 @@ volumes:
   redis-data-1:
   redis-data-2:
   redis-data-3:
-
-networks:
-  default:
-    driver: host
