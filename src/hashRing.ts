@@ -1,9 +1,7 @@
 import { Redis } from "ioredis";
 import {
 	NODE_STATES,
-	PHYSICAL_NODE_COUNT,
 	PING_FAILURE_THRESHOLD,
-	VIRTUAL_NODE_COUNT,
 } from "./constants";
 import { HashRingNode, PhysicalNode } from "./types";
 import { generateHash, visualizeHashRing } from "./utils";
@@ -18,7 +16,9 @@ class HashRing {
 		this.verboseLog = process.env.VERBOSE_LOGGING_ENABLED !== "false";
 		this.physicalNodes = new Map();
 
-		for (let i = 0; i < PHYSICAL_NODE_COUNT; i++) {
+    const physicalNodeCount = parseInt(process.env.PHYSICAL_NODES ?? "3");
+
+		for (let i = 0; i < physicalNodeCount; i++) {
 			this.physicalNodes.set(
 				this.getPhysicalNodeId(i),
 				this.createPhysicalNode(i)
@@ -135,11 +135,13 @@ class HashRing {
 	private createVirtualNodes() {
 		this.ring = [];
 
+    const virtualNodeCount = parseInt(process.env.VIRTUAL_NODE_COUNT ?? "5");
+
 		// Generate hashes for the address / identifier of each node
 		// and push the hashes onto the ring
 		for (const n of this.activeCacheNodes) {
 			// For each node, generate virtual nodes
-			for (let i = 0; i < VIRTUAL_NODE_COUNT; i++) {
+			for (let i = 0; i < virtualNodeCount; i++) {
 				const virtualNodeId = `${n.nodeId}-virtual-${i}`;
 				const position = generateHash(virtualNodeId);
 				this.ring.push({
