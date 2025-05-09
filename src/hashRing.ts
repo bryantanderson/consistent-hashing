@@ -1,6 +1,6 @@
 import * as crypto from "crypto";
 import { Redis } from "ioredis";
-import { CacheNode, HashRingNode } from "./types";
+import { PhysicalNode, HashRingNode } from "./types";
 
 const VIRTUAL_NODE_COUNT = 5;
 const PING_FAILURE_THRESHOLD = 3;
@@ -17,23 +17,32 @@ function generateHash(key: string) {
 }
 
 class HashRing {
-	private verboseLog: boolean = false;
 	private ring: HashRingNode[];
-	private cacheNodes: Map<string, CacheNode>;
+	private verboseLog: boolean = false;
+	private physicalNodes: Map<string, PhysicalNode>;
 
 	constructor() {
 		this.ring = [];
 		this.verboseLog = process.env.VERBOSE_LOGGING_ENABLED !== "false";
-		this.cacheNodes = new Map();
-		this.cacheNodes.set(this.getCacheNodeKey(0), this.createCacheNode(0));
-		this.cacheNodes.set(this.getCacheNodeKey(1), this.createCacheNode(1));
-		this.cacheNodes.set(this.getCacheNodeKey(2), this.createCacheNode(2));
-		this.updateCacheNodes();
+		this.physicalNodes = new Map();
+		this.physicalNodes.set(
+			this.getPhysicalNodeId(0),
+			this.createPhysicalNode(0)
+		);
+		this.physicalNodes.set(
+			this.getPhysicalNodeId(1),
+			this.createPhysicalNode(1)
+		);
+		this.physicalNodes.set(
+			this.getPhysicalNodeId(2),
+			this.createPhysicalNode(2)
+		);
+		this.createVirtualNodes();
 		this.startProbe();
 	}
 
 	setValue(key: string, value: string) {
-		const cacheNode = this.getCacheNode(key);
+		const cacheNode = this.getPhysicalNode(key);
 
 		if (!cacheNode) {
 			return;
@@ -41,7 +50,7 @@ class HashRing {
 
 		if (this.verboseLog) {
 			console.log(
-				`Setting key ${key}. Next clockwise Cache node: ${cacheNode.nodeKey}`
+				`Setting key ${key}. Next clockwise Cache node: ${cacheNode.nodeId}`
 			);
 		}
 
@@ -54,7 +63,7 @@ class HashRing {
 	}
 
 	getValue(key: string) {
-		const cacheNode = this.getCacheNode(key);
+		const cacheNode = this.getPhysicalNode(key);
 
 		if (!cacheNode) {
 			return;
@@ -62,7 +71,7 @@ class HashRing {
 
 		if (this.verboseLog) {
 			console.log(
-				`Fetching key ${key}. Next clockwise Cache node: ${cacheNode.nodeKey}`
+				`Fetching key ${key}. Next clockwise Cache node: ${cacheNode.nodeId}`
 			);
 		}
 
@@ -188,7 +197,7 @@ class HashRing {
 		output += "Node Positions:\n";
 		for (const node of this.ring) {
 			const hexPosition = node.position.toString(16).padStart(8, "0");
-			output += `  ${node.cacheNodeKey}: 0x${hexPosition}\n`;
+			output += `  ${node.physicalNodeId}: 0x${hexPosition}\n`;
 		}
 
 		// Sample key distributions
@@ -205,8 +214,8 @@ class HashRing {
 
 			for (const key of sampleKeys) {
 				const hash = generateHash(key);
-				const node = this.getCacheNode(key);
-				output += `  ${key} → ${node?.nodeKey || "No node"} (0x${hash
+				const node = this.getPhysicalNode(key);
+				output += `  ${key} → ${node?.nodeId || "No node"} (0x${hash
 					.toString(16)
 					.padStart(8, "0")})\n`;
 			}
@@ -216,8 +225,8 @@ class HashRing {
 	}
 
 	async shutdown() {
-		for (const node of this.cacheNodes.values()) {
-			console.log(`Closing connection to cache node ${node.nodeKey}...`);
+		for (const node of this.physicalNodes.values()) {
+			console.log(`Closing connection to cache node ${node.nodeId}...`);
 			try {
 				await node.client.quit();
 			} catch (error) {
@@ -228,7 +237,7 @@ class HashRing {
 		}
 	}
 
-	private getCacheNode(key: string) {
+	private getPhysicalNode(key: string) {
 		if (this.ring.length === 0) {
 			return;
 		}
@@ -242,7 +251,7 @@ class HashRing {
 		// If the hash's value is greater than the position of the last node in the ring,
 		// wrap around to the first node in the ring
 		if (hash > this.ring[this.ring.length - 1].position) {
-			return this.cacheNodes.get(this.ring[0].cacheNodeKey);
+			return this.physicalNodes.get(this.ring[0].physicalNodeId);
 		}
 
 		// Use binary search to find the next node clockwise in the ring
@@ -259,15 +268,15 @@ class HashRing {
 				high = mid - 1;
 			} else {
 				// Exact match found
-				return this.cacheNodes.get(nodeAtMid.cacheNodeKey);
+				return this.physicalNodes.get(nodeAtMid.physicalNodeId);
 			}
 		}
 
 		// After exiting the loop, 'low' is the first index with position >= hash
-		return this.cacheNodes.get(this.ring[low].cacheNodeKey);
+		return this.physicalNodes.get(this.ring[low].physicalNodeId);
 	}
 
-	private updateCacheNodes() {
+	private createVirtualNodes() {
 		this.ring = [];
 
 		// Generate hashes for the address / identifier of each node
@@ -275,10 +284,10 @@ class HashRing {
 		for (const n of this.activeCacheNodes) {
 			// For each node, generate virtual nodes
 			for (let i = 0; i < VIRTUAL_NODE_COUNT; i++) {
-				const position = generateHash(`${n.nodeKey}-virtual-${i}`);
+				const position = generateHash(`${n.nodeId}-virtual-${i}`);
 				this.ring.push({
 					position,
-					cacheNodeKey: n.nodeKey,
+					physicalNodeId: n.nodeId,
 				});
 			}
 		}
@@ -291,7 +300,7 @@ class HashRing {
 	// it is removed from the hash ring, and the hash ring is rebalanced.
 	private startProbe(intervalMs: number = 1000) {
 		const interval = setInterval(() => {
-			for (const node of this.cacheNodes.values()) {
+			for (const node of this.physicalNodes.values()) {
 				try {
 					node.client.ping();
 					node.state = "active";
@@ -313,25 +322,25 @@ class HashRing {
 		});
 	}
 
-	private getCacheNodeKey(nodeCount: number) {
-		return `cache-node-${nodeCount}`;
+	private getPhysicalNodeId(nodeCount: number) {
+		return `node-${nodeCount}`;
 	}
 
-	private createCacheNode(nodeCount: number) {
+	private createPhysicalNode(nodeCount: number) {
 		return {
 			client: new Redis({
 				host: "localhost",
 				port: 6379 + nodeCount,
 				connectTimeout: 120000,
 			}),
-			nodeKey: this.getCacheNodeKey(nodeCount),
+			nodeId: this.getPhysicalNodeId(nodeCount),
 			pingFailures: 0,
 			state: "active" as const,
 		};
 	}
 
 	get activeCacheNodes() {
-		const nodesRaw = this.cacheNodes.values();
+		const nodesRaw = this.physicalNodes.values();
 		// Ignore any inactive nodes
 		return Array.from(nodesRaw).filter((n) => n.state === "active");
 	}

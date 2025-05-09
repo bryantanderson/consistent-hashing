@@ -2,14 +2,14 @@ import type { Redis } from "ioredis";
 
 type HashRingNode = {
   position: number;
-  cacheNodeKey: string;
+  physicalNodeId: string;
 }
 
-type CacheNode = {
+type PhysicalNode = {
 	client: Redis;
-  nodeKey: string;
+  nodeId: string;
 	pingFailures: number;
   state: "active" | "inactive";
 };
 
-export { HashRingNode, CacheNode };
+export { HashRingNode, PhysicalNode };
