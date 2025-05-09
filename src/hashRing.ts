@@ -6,20 +6,21 @@ import { generateHash, visualizeHashRing } from "./utils";
 class HashRing {
 	private ring: HashRingNode[];
 	private verboseLog: boolean = false;
-	private physicalNodes: Map<string, PhysicalNode>;
+	private physicalNodeRegistry: Map<string, PhysicalNode>;
 
 	constructor() {
+		// TODO: Make this a BST, such as red-black tree for O(log n) operations.
 		this.ring = [];
 		this.verboseLog = process.env.VERBOSE_LOGGING_ENABLED !== "false";
 		// In a production environment, the data structure is stored on a centralized highly available service.
 		// Alternatively, the data structure is stored on each node, and the state information between the nodes
 		// is synchronized through the gossip protocol
-		this.physicalNodes = new Map();
+		this.physicalNodeRegistry = new Map();
 
 		const physicalNodeCount = parseInt(process.env.PHYSICAL_NODES ?? "3");
 
 		for (let i = 0; i < physicalNodeCount; i++) {
-			this.physicalNodes.set(
+			this.physicalNodeRegistry.set(
 				this.getPhysicalNodeId(i),
 				this.createPhysicalNode(i)
 			);
@@ -76,7 +77,7 @@ class HashRing {
 	}
 
 	async shutdown() {
-		for (const node of this.physicalNodes.values()) {
+		for (const node of this.physicalNodeRegistry.values()) {
 			console.log(`Closing connection to cache node ${node.nodeId}...`);
 			try {
 				await node.client.quit();
@@ -118,7 +119,7 @@ class HashRing {
 		// If the hash's value is greater than the position of the last node in the ring,
 		// wrap around to the first node in the ring
 		if (hash > this.ring[this.ring.length - 1].position) {
-			return this.physicalNodes.get(this.ring[0].physicalNodeId);
+			return this.physicalNodeRegistry.get(this.ring[0].physicalNodeId);
 		}
 
 		// Use binary search to find the next node clockwise in the ring
@@ -136,12 +137,12 @@ class HashRing {
 				high = mid - 1;
 			} else {
 				// Exact match found
-				return this.physicalNodes.get(nodeAtMid.physicalNodeId);
+				return this.physicalNodeRegistry.get(nodeAtMid.physicalNodeId);
 			}
 		}
 
 		// After exiting the loop, 'low' is the first index with position >= hash
-		return this.physicalNodes.get(this.ring[low].physicalNodeId);
+		return this.physicalNodeRegistry.get(this.ring[low].physicalNodeId);
 	}
 
 	private createVirtualNodes() {
@@ -174,7 +175,7 @@ class HashRing {
 	// it is removed from the hash ring, and the hash ring is rebalanced.
 	private startProbe(intervalMs: number = 1000) {
 		const interval = setInterval(() => {
-			for (const node of this.physicalNodes.values()) {
+			for (const node of this.physicalNodeRegistry.values()) {
 				try {
 					node.client.ping();
 					node.state = NODE_STATES.ACTIVE;
@@ -214,7 +215,7 @@ class HashRing {
 	}
 
 	private get activeCacheNodes() {
-		const nodesRaw = this.physicalNodes.values();
+		const nodesRaw = this.physicalNodeRegistry.values();
 		// Ignore any inactive nodes
 		return Array.from(nodesRaw).filter(
 			(n) => n.state === NODE_STATES.ACTIVE
