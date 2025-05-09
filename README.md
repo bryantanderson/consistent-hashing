@@ -34,3 +34,11 @@ To get a value, write `GET <key>` to stdin.
 Writing `VISUALIZE` to stdin prints out a visualization of the hash ring and the cache nodes on it to stdout.
 
 All other commands will be rejected by the application. 
+
+## Future work
+
+[] Implement node removal with key redistribution.
+[] Implement node addition with key redistribution.
+[] Refactor the `HashRing` class to use a variant of the Binary Search Tree which guarantees O(log n) operations, such as a Red-Black tree or an AVL tree.
+[] Improve guide for running application with Docker Compose
+[] Make the intro to Consistent Hashing more comprehensive
