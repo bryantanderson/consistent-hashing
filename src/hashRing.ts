@@ -1,5 +1,10 @@
 import { Redis } from "ioredis";
-import { NODE_STATES, PING_FAILURE_THRESHOLD, VIRTUAL_NODE_COUNT } from "./constants";
+import {
+	NODE_STATES,
+	PHYSICAL_NODE_COUNT,
+	PING_FAILURE_THRESHOLD,
+	VIRTUAL_NODE_COUNT,
+} from "./constants";
 import { HashRingNode, PhysicalNode } from "./types";
 import { generateHash, visualizeHashRing } from "./utils";
 
@@ -12,18 +17,14 @@ class HashRing {
 		this.ring = [];
 		this.verboseLog = process.env.VERBOSE_LOGGING_ENABLED !== "false";
 		this.physicalNodes = new Map();
-		this.physicalNodes.set(
-			this.getPhysicalNodeId(0),
-			this.createPhysicalNode(0)
-		);
-		this.physicalNodes.set(
-			this.getPhysicalNodeId(1),
-			this.createPhysicalNode(1)
-		);
-		this.physicalNodes.set(
-			this.getPhysicalNodeId(2),
-			this.createPhysicalNode(2)
-		);
+
+		for (let i = 0; i < PHYSICAL_NODE_COUNT; i++) {
+			this.physicalNodes.set(
+				this.getPhysicalNodeId(i),
+				this.createPhysicalNode(i)
+			);
+		}
+
 		this.createVirtualNodes();
 		this.startProbe();
 	}
@@ -194,7 +195,9 @@ class HashRing {
 	private get activeCacheNodes() {
 		const nodesRaw = this.physicalNodes.values();
 		// Ignore any inactive nodes
-		return Array.from(nodesRaw).filter((n) => n.state === NODE_STATES.ACTIVE);
+		return Array.from(nodesRaw).filter(
+			(n) => n.state === NODE_STATES.ACTIVE
+		);
 	}
 }
 
