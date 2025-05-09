@@ -60,7 +60,14 @@ class AVLTree {
 		return 1 + Math.max(leftChildHeight, rightChildHeight);
 	}
 
-  // Rotations preserve the BST property (left < root < right)
+  // Rotations preserve the BST property (left < root < right). The fundamental goal of a rotation 
+  // is to reduce the overall height of an imbalanced branch.
+  //
+  // The in order traversal of the BST (left, root, right) must be the same before and after the rotation.
+  //
+  // In a right rotation, the left child becomes the new root, effectively reducing the depth of the left subtree.
+  //
+  // In a left rotation, the right child becomes the new root, reducing the depth of the right subtree.
 
   // Visual representation of a right rotation:
   //     y           x
