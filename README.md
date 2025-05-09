@@ -1,6 +1,6 @@
 ## Introduction: What is Consistent Hashing?
 
-[High Scalability's article on Consistent Hashing](https://highscalability.com/consistent-hashing-algorithm/)
+Source: [High Scalability's article on Consistent Hashing](https://highscalability.com/consistent-hashing-algorithm/)
 
 Consistent hashing is a distributed systems technique that operates by assigning the data objects and nodes a position on a virtual ring structure (hash ring). Consistent hashing minimizes the number of keys to be remapped when the total number of nodes changes.
 
@@ -18,6 +18,26 @@ To improve load balancing, each physical node is represented as multiple "virtua
 -   When a node fails, its keys are distributed more evenly among remaining nodes. Hence it significantly reduces hot spots and balances load distribution
 
 Without virtual nodes, failure of a physical node would mean that _all_ of it's keys would go to the next clockwise node, creating a hot spot in the ring.
+
+The Average number of keys stored on a node = k / N
+-   Where k is the total number of keys (data objects) and N is the number of nodes.
+-   The deletion or addition of a node results in the movement of an average number of keys stored on a single node
+
+Typically, a self-balancing binary search tree (BST) data structure is used to store the positions of the nodes on the hash ring. 
+-   The BST offers logarithmic O(log n) time complexity for search, insert, and delete operations. 
+-   The keys of the BST contain the positions of the nodes on the hash ring. 
+
+The BST data structure is stored on a centralized highly available service. As an alternative, the BST data structure is stored on each node, and the state information between the nodes is synchronized through the gossip protocol.
+
+The insertion of a new node results in the movement of data objects that fall within the range of the new node from the immediate neighbouring node in the clockwise direction:
+1. Insert the hash of the node ID in BST in O(log n) time
+2. Identify the keys that fall within the subrange of the new node from the successor node on BST
+3. Move the keys to the new node
+
+The deletion of a node results in the movement of data objects that fall within the range of the decommissioned node to the immediate neighbouring node in the clockwise direction:
+1. Delete the hash of the decommissioned node ID in BST in logarithmic time
+2. Identify the keys that fall within the range of the decommissioned node
+3. Move the keys to the successor node
 
 ## Implementation detail
 
@@ -42,4 +62,4 @@ All other commands will be rejected by the application.
 -   [ ] Implement node addition with key redistribution.
 -   [ ] Refactor the `HashRing` class to use a variant of the Binary Search Tree which guarantees O(log n) operations, such as a Red-Black tree or an AVL tree.
 -   [ ] Improve guide for running application with Docker Compose
--   [ ] Make the intro to Consistent Hashing more comprehensive
+-   [x] Make the intro to Consistent Hashing more comprehensive
