@@ -93,16 +93,16 @@ class HashRing {
 		console.log(
 			`Physical node ${node.nodeId} added. Redistributing keys...`
 		);
-		// TODO: Add node to ring. The keys that fall in the range of the subsequent node in the clockwise direction
-		// and also in the range of the new node should be moved to the new node
+		// TODO: Add node to ring. The keys that fall within the range of the new node 
+    // are moved out from the immediate neighboring node in the clockwise direction
 	}
 
 	removeNode(failedNode: PhysicalNode) {
 		console.log(
 			`Physical node ${failedNode.nodeId} has failed. Redistributing keys...`
 		);
-		// TODO: Remove node from ring. The keys that belonged to this node and it's virtual nodes should be
-		// redistributed to the next node in the clockwise direction.
+		// TODO: Remove node from ring. The keys that belonged to the node
+		// are moved out to the immediate neighboring node in the clockwise direction.
 	}
 
 	private getPhysicalNode(key: string) {
