@@ -5,7 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "dev": "tsx watch src/main.ts"
+    "dev": "./dev.sh"
   },
   "keywords": [],
   "author": "bryantanderson",
@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.17",
+    "concurrently": "^9.1.2",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   }

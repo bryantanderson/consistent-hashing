@@ -226,6 +226,7 @@ class HashRing {
 			client: new Redis({
 				host: "localhost",
 				port: 6379 + nodeCount,
+				connectTimeout: 120000,
 			}),
 			nodeKey: this.getCacheNodeKey(nodeCount),
 			pingFailures: 0,

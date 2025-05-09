@@ -2,6 +2,8 @@ import * as readline from "readline";
 import { HashRing } from "./hashRing";
 
 async function main() {
+  console.log("Initializing hash ring...");
+
 	const rl = readline.createInterface({
 		input: process.stdin,
 		output: process.stdout,
