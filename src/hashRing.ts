@@ -195,9 +195,10 @@ class HashRing {
 
 		// Node positions in hex
 		output += "Node Positions:\n";
+
 		for (const node of this.ring) {
 			const hexPosition = node.position.toString(16).padStart(8, "0");
-			output += `  ${node.physicalNodeId}: 0x${hexPosition}\n`;
+			output += `  ${node.virtualNodeId}: 0x${hexPosition}\n`;
 		}
 
 		// Sample key distributions
@@ -284,9 +285,11 @@ class HashRing {
 		for (const n of this.activeCacheNodes) {
 			// For each node, generate virtual nodes
 			for (let i = 0; i < VIRTUAL_NODE_COUNT; i++) {
-				const position = generateHash(`${n.nodeId}-virtual-${i}`);
+        const virtualNodeId = `${n.nodeId}-virtual-${i}`;
+				const position = generateHash(virtualNodeId);
 				this.ring.push({
 					position,
+          virtualNodeId,
 					physicalNodeId: n.nodeId,
 				});
 			}
