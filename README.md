@@ -54,7 +54,7 @@ To get a value, write `GET <key>` to stdin.
 
 Writing `VISUALIZE` to stdin prints out a visualization of the hash ring and the nodes (virtual and physical) on it to stdout.
 
-The command `TRIGGER_NODE_FAILURE` will be accepted, but it is currently unimplemented and will do nothing.
+Writing `TRIGGER_NODE_FAILURE` to stdin will be accepted, but it is currently unimplemented and will do nothing.
 
 All other commands will be rejected by the application.
 
