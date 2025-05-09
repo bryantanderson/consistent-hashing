@@ -149,9 +149,6 @@ class HashRing {
 		// If the hash's value is greater than the position of the last node in the ring,
 		// wrap around to the first node in the ring
 		if (hash > this.ring[this.ring.length - 1].position) {
-			console.log(
-				`Hash is greater than the position of last node in the ring. Defaulting to first node ${this.ring[0].cacheNodeKey}`
-			);
 			return this.cacheNodes.get(this.ring[0].cacheNodeKey);
 		}
 
@@ -169,17 +166,11 @@ class HashRing {
 				high = mid - 1;
 			} else {
 				// Exact match found
-				console.log(
-					`Exact match found for key ${key} at node ${nodeAtMid.cacheNodeKey}`
-				);
 				return this.cacheNodes.get(nodeAtMid.cacheNodeKey);
 			}
 		}
 
 		// After exiting the loop, 'low' is the first index with position >= hash
-		console.log(
-			`No exact match found for key ${key}. Returning node ${this.ring[low].cacheNodeKey}`
-		);
 		return this.cacheNodes.get(this.ring[low].cacheNodeKey);
 	}
 
