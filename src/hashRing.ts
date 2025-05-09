@@ -2,7 +2,7 @@ import * as crypto from "crypto";
 import { Redis } from "ioredis";
 import { CacheNode, HashRingNode } from "./types";
 
-const VIRTUAL_NODE_COUNT = 100;
+// const VIRTUAL_NODE_COUNT = 100;
 const PING_FAILURE_THRESHOLD = 3;
 
 function generateHash(key: string) {
@@ -12,11 +12,13 @@ function generateHash(key: string) {
 }
 
 class HashRing {
+	private verboseLog: boolean = false;
 	private ring: HashRingNode[];
 	private cacheNodes: Map<string, CacheNode>;
 
 	constructor() {
 		this.ring = [];
+		this.verboseLog = process.env.VERBOSE_LOGGING_ENABLED !== "false";
 		this.cacheNodes = new Map();
 		this.cacheNodes.set(this.getCacheNodeKey(0), this.createCacheNode(0));
 		this.cacheNodes.set(this.getCacheNodeKey(1), this.createCacheNode(1));
@@ -32,7 +34,18 @@ class HashRing {
 			return;
 		}
 
-		return cacheNode.client.set(key, value);
+		if (this.verboseLog) {
+			console.log(
+				`Setting key ${key}. Next clockwise Cache node: ${cacheNode.nodeKey}`
+			);
+		}
+
+		try {
+			return cacheNode.client.set(key, value);
+		} catch (error) {
+			console.error(`Error setting key ${key}:`, error);
+			return null;
+		}
 	}
 
 	getValue(key: string) {
@@ -42,7 +55,18 @@ class HashRing {
 			return;
 		}
 
-		return cacheNode.client.get(key);
+		if (this.verboseLog) {
+			console.log(
+				`Fetching key ${key}. Next clockwise Cache node: ${cacheNode.nodeKey}`
+			);
+		}
+
+		try {
+			return cacheNode.client.get(key);
+		} catch (error) {
+			console.error(`Error retrieving key ${key}:`, error);
+			return null;
+		}
 	}
 
 	visualize() {
@@ -64,42 +88,90 @@ class HashRing {
 		output += "         " + circle.slice(0, 8).join(" ") + "\n";
 
 		// Top-right quarter
-		output += "       " + circle[63] + "                " + circle[8] + "\n";
-		output += "     " + circle[62] + "                    " + circle[9] + "\n";
-		output += "    " + circle[61] + "                      " + circle[10] + "\n";
-		output += "   " + circle[60] + "                        " + circle[11] + "\n";
 		output +=
-			"  " + circle[59] + "                          " + circle[12] + "\n";
+			"       " + circle[63] + "                " + circle[8] + "\n";
 		output +=
-			" " + circle[58] + "                            " + circle[13] + "\n";
+			"     " + circle[62] + "                    " + circle[9] + "\n";
 		output +=
-			" " + circle[57] + "                            " + circle[14] + "\n";
+			"    " + circle[61] + "                      " + circle[10] + "\n";
 		output +=
-			" " + circle[56] + "                            " + circle[15] + "\n";
+			"   " + circle[60] + "                        " + circle[11] + "\n";
+		output +=
+			"  " +
+			circle[59] +
+			"                          " +
+			circle[12] +
+			"\n";
+		output +=
+			" " +
+			circle[58] +
+			"                            " +
+			circle[13] +
+			"\n";
+		output +=
+			" " +
+			circle[57] +
+			"                            " +
+			circle[14] +
+			"\n";
+		output +=
+			" " +
+			circle[56] +
+			"                            " +
+			circle[15] +
+			"\n";
 
 		// Left and right sides
-		output += circle[55] + "                              " + circle[16] + "\n";
-		output += circle[54] + "                              " + circle[17] + "\n";
-		output += circle[53] + "                              " + circle[18] + "\n";
-		output += circle[52] + "                              " + circle[19] + "\n";
-		output += circle[51] + "                              " + circle[20] + "\n";
-		output += circle[50] + "                              " + circle[21] + "\n";
-		output += circle[49] + "                              " + circle[22] + "\n";
-		output += circle[48] + "                              " + circle[23] + "\n";
+		output +=
+			circle[55] + "                              " + circle[16] + "\n";
+		output +=
+			circle[54] + "                              " + circle[17] + "\n";
+		output +=
+			circle[53] + "                              " + circle[18] + "\n";
+		output +=
+			circle[52] + "                              " + circle[19] + "\n";
+		output +=
+			circle[51] + "                              " + circle[20] + "\n";
+		output +=
+			circle[50] + "                              " + circle[21] + "\n";
+		output +=
+			circle[49] + "                              " + circle[22] + "\n";
+		output +=
+			circle[48] + "                              " + circle[23] + "\n";
 
 		// Bottom-left quarter
 		output +=
-			" " + circle[47] + "                            " + circle[24] + "\n";
+			" " +
+			circle[47] +
+			"                            " +
+			circle[24] +
+			"\n";
 		output +=
-			" " + circle[46] + "                            " + circle[25] + "\n";
+			" " +
+			circle[46] +
+			"                            " +
+			circle[25] +
+			"\n";
 		output +=
-			" " + circle[45] + "                            " + circle[26] + "\n";
+			" " +
+			circle[45] +
+			"                            " +
+			circle[26] +
+			"\n";
 		output +=
-			"  " + circle[44] + "                          " + circle[27] + "\n";
-		output += "   " + circle[43] + "                        " + circle[28] + "\n";
-		output += "    " + circle[42] + "                      " + circle[29] + "\n";
-		output += "     " + circle[41] + "                    " + circle[30] + "\n";
-		output += "       " + circle[40] + "                " + circle[31] + "\n";
+			"  " +
+			circle[44] +
+			"                          " +
+			circle[27] +
+			"\n";
+		output +=
+			"   " + circle[43] + "                        " + circle[28] + "\n";
+		output +=
+			"    " + circle[42] + "                      " + circle[29] + "\n";
+		output +=
+			"     " + circle[41] + "                    " + circle[30] + "\n";
+		output +=
+			"       " + circle[40] + "                " + circle[31] + "\n";
 
 		// Bottom quarter
 		output += "         " + circle.slice(32, 40).join(" ") + "\n\n";
@@ -144,6 +216,10 @@ class HashRing {
 		}
 
 		const hash = generateHash(key);
+
+		if (this.verboseLog) {
+			console.log(`Key ${key}. Computed hash: ${hash}`);
+		}
 
 		// If the hash's value is greater than the position of the last node in the ring,
 		// wrap around to the first node in the ring

@@ -15,4 +15,9 @@ This project uses MD5 as the hashing function, and uses 3 Redises as the cache "
 `docker compose -f docker-compose.yml up` OR
 `npm run dev:redises` in one terminal, and `npm run dev` in a different terminal
 
-Once all the redises are up and running, write to standard input of the node application. All values written to stdin will be treated as values, with the exception of the string `PRINT_HASH_RING` which will trigger printing of the current state of the hash ring to standard output.
+By default, the application logging is fairly verbose. This can be disabled by setting `VERBOSE_LOGGING_ENABLED=false` in environment variables.
+
+To set a value, write `SET <key> <value>` to stdin.
+To get a value, write `GET <key>` to stdin.
+Writing `VISUALIZE` to stdin prints out a visualization of the hash ring and the cache nodes on it to stdout.
+All other commands will be rejected by the application. 
