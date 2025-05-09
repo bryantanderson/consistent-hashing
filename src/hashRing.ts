@@ -1,9 +1,7 @@
 import { Redis } from "ioredis";
+import { NODE_STATES, PING_FAILURE_THRESHOLD, VIRTUAL_NODE_COUNT } from "./constants";
 import { HashRingNode, PhysicalNode } from "./types";
 import { generateHash, visualizeHashRing } from "./utils";
-
-const VIRTUAL_NODE_COUNT = 5;
-const PING_FAILURE_THRESHOLD = 3;
 
 class HashRing {
 	private ring: HashRingNode[];
@@ -157,12 +155,12 @@ class HashRing {
 			for (const node of this.physicalNodes.values()) {
 				try {
 					node.client.ping();
-					node.state = "active";
+					node.state = NODE_STATES.ACTIVE;
 					node.pingFailures = 0;
 				} catch (error) {
 					// If the node is inactive, hide it from the hash ring and rebalance
 					if (node.pingFailures >= PING_FAILURE_THRESHOLD) {
-						node.state = "inactive";
+						node.state = NODE_STATES.INACTIVE;
 						// TODO: Rebalance
 						continue;
 					}
@@ -189,14 +187,14 @@ class HashRing {
 			}),
 			nodeId: this.getPhysicalNodeId(nodeCount),
 			pingFailures: 0,
-			state: "active" as const,
+			state: NODE_STATES.ACTIVE,
 		};
 	}
 
 	get activeCacheNodes() {
 		const nodesRaw = this.physicalNodes.values();
 		// Ignore any inactive nodes
-		return Array.from(nodesRaw).filter((n) => n.state === "active");
+		return Array.from(nodesRaw).filter((n) => n.state === NODE_STATES.ACTIVE);
 	}
 }
 

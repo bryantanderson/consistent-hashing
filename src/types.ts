@@ -1,18 +1,19 @@
 import type { Redis } from "ioredis";
+import { NodeState } from "./constants";
 
 type HashRingNode = {
-  position: number;
-  virtualNodeId: string;
-  // This ID is used to fetch the client for the physical node,
-  // which is what actually stores tbe data
-  physicalNodeId: string;
-}
+	position: number;
+	virtualNodeId: string;
+	// This ID is used to fetch the client for the physical node,
+	// which is what actually stores tbe data
+	physicalNodeId: string;
+};
 
 type PhysicalNode = {
 	client: Redis;
-  nodeId: string;
+	nodeId: string;
 	pingFailures: number;
-  state: "active" | "inactive";
+	state: NodeState;
 };
 
 export { HashRingNode, PhysicalNode };
