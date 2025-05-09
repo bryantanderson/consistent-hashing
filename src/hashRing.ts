@@ -191,7 +191,7 @@ class HashRing {
 		};
 	}
 
-	get activeCacheNodes() {
+	private get activeCacheNodes() {
 		const nodesRaw = this.physicalNodes.values();
 		// Ignore any inactive nodes
 		return Array.from(nodesRaw).filter((n) => n.state === NODE_STATES.ACTIVE);
