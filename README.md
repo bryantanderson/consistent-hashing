@@ -28,6 +28,9 @@ This project uses MD5 as the hashing function, and uses 3 Redises as the cache "
 By default, the application logging is fairly verbose. This can be disabled by setting `VERBOSE_LOGGING_ENABLED=false` in environment variables.
 
 To set a value, write `SET <key> <value>` to stdin.
+
 To get a value, write `GET <key>` to stdin.
+
 Writing `VISUALIZE` to stdin prints out a visualization of the hash ring and the cache nodes on it to stdout.
+
 All other commands will be rejected by the application. 
