@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   redis-1:
     image: redis:latest
@@ -51,9 +49,12 @@ services:
       - redis-1
       - redis-2
       - redis-3
-      
 
 volumes:
   redis-data-1:
   redis-data-2:
   redis-data-3:
+
+networks:
+  default:
+    driver: host
