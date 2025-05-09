@@ -24,7 +24,7 @@ async function main() {
 
 	const hashRing = new HashRing();
 
-	rl.on("line", (line) => {
+	rl.on("line", async (line) => {
 		console.log(`Received prompt: ${line}`);
 
 		if (line === "VISUALIZE") {
@@ -32,36 +32,50 @@ async function main() {
 			return;
 		}
 
-    const parts = line.split(" ");
+		const parts = line.split(" ");
 
-    switch (parts.length) {
-      case 2:
-        if (parts[0] !== "GET") {
-          console.error(`Invalid usage: ${line}. Expected "GET <key>".`);
-          return;
-        }
-        hashRing.getValue(parts[1]);
-        break;
-      case 3:
-        if (parts[0] !== "SET") {
-          console.error(`Invalid usage: ${line}. Expected "SET <key> <value>".`);
-          return;
-        }
-        hashRing.setValue(parts[1], parts[2]);
-        break;
-      default:
-        console.error(`Invalid usage: ${line}. Expected "GET <key>" or "SET <key> <value>".`);
-        return;
-    }
+		switch (parts.length) {
+			case 2: {
+				if (parts[0] !== "GET") {
+					console.error(
+						`Invalid usage: ${line}. Expected "GET <key>".`
+					);
+					return;
+				}
+				const key = parts[1];
+				const value = await hashRing.getValue(key);
+				console.log(`Found value ${value} for key ${key}`);
+				break;
+			}
+			case 3: {
+				if (parts[0] !== "SET") {
+					console.error(
+						`Invalid usage: ${line}. Expected "SET <key> <value>".`
+					);
+					return;
+				}
+				const key = parts[1];
+				const value = parts[2];
+				hashRing.setValue(key, value);
+				break;
+			}
+			default:
+				console.error(
+					`Invalid usage: ${line}. Expected "GET <key>" or "SET <key> <value>".`
+				);
+				return;
+		}
 	});
 
 	rl.on("close", () => {
-		console.log("Readline closed. Printing hash ring visualization...");
+		console.log("\nReadline closed. Printing hash ring visualization...");
 		console.log(hashRing.visualize());
 	});
 
-	process.on("SIGINT", () => {
+	process.on("SIGINT", async () => {
 		rl.close();
+		await hashRing.shutdown();
+		process.exit(0);
 	});
 }
 

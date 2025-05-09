@@ -7,6 +7,11 @@ const PING_FAILURE_THRESHOLD = 3;
 
 function generateHash(key: string) {
 	const hexDigest = crypto.createHash("md5").update(key).digest("hex");
+	// MD5 produces a 128 bit hash, represented as a 32 character hex string
+	// JS numbers can only represent numbers precisely up to Number.MAX_SAFE_INTERGER (roughly 2^53 - 1)
+	// Trying to convert the full MD5 hash to a number will result in a loss of precision
+	// We can take the first 8 characters of the hash to get a 32 bit number, which still provides
+	// a good distribution of the hash output space (2^32 combinations)
 	const hashValue = parseInt(hexDigest.slice(0, 8), 16);
 	return hashValue;
 }
@@ -208,6 +213,19 @@ class HashRing {
 		}
 
 		return output;
+	}
+
+	async shutdown() {
+		for (const node of this.cacheNodes.values()) {
+			console.log(`Closing connection to cache node ${node.nodeKey}...`);
+			try {
+				await node.client.quit();
+			} catch (error) {
+				console.error(
+					`Error disconnecting from node: ${JSON.stringify(error)}`
+				);
+			}
+		}
 	}
 
 	private getCacheNode(key: string) {
