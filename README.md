@@ -39,12 +39,12 @@ The deletion of a node results in the movement of data objects that fall within 
 2. Identify the keys that fall within the range of the decommissioned node
 3. Move the keys to the successor node
 
-## Implementation detail
+## Running the project
 
 This project uses MD5 as the hashing function, and uses 3 Redises as the cache "nodes". To start the project, run:
 
 `docker compose -f docker-compose.yml up` OR
-`npm run dev:redises` in one terminal, and `npm run dev` in a different terminal
+`npm run dev:redises` in one terminal, and `npm run dev` in a different terminal. Note that hot reloading is not enabled.
 
 By default, the application logging is fairly verbose. This can be disabled by setting `VERBOSE_LOGGING_ENABLED=false` in environment variables.
 
