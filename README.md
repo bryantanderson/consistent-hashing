@@ -16,6 +16,8 @@ To improve load balancing, each physical node is represented as multiple "virtua
 - This spreads the node's responsibility across different segments of the ring
 - When a node fails, its keys are distributed more evenly among remaining nodes. Hence it significantly reduces hot spots and balances load distribution
 
+Without virtual nodes, failure of a physical node would mean that _all_ of it's keys would go to the next clockwise node, creating a hot spot in the ring.
+
 ## Implementation detail
 
 This project uses MD5 as the hashing function, and uses 3 Redises as the cache "nodes". To start the project, run:
