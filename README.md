@@ -60,6 +60,6 @@ All other commands will be rejected by the application.
 
 -   [ ] Implement node removal with key redistribution.
 -   [ ] Implement node addition with key redistribution.
--   [ ] Refactor the `HashRing` class to use a variant of the Binary Search Tree which guarantees O(log n) operations, such as a Red-Black tree or an AVL tree.
+-   [ ] Refactor the `HashRing` class to use a self-binary Binary Search Tree, such as a Red-Black tree or an AVL tree.
 -   [ ] Improve guide for running application with Docker Compose
 -   [x] Make the intro to Consistent Hashing more comprehensive
