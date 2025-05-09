@@ -14,7 +14,7 @@ async function main() {
 		console.log(`Received: ${line}`);
 
 		if (line === "PRINT_HASH_RING") {
-			console.log(hashRing.toString());
+			console.log(hashRing.visualize());
       return;
 		}
 
@@ -23,7 +23,7 @@ async function main() {
 
 	rl.on("close", () => {
 		console.log("Input stream closed");
-		console.log(hashRing.toString());
+		console.log(hashRing.visualize());
 	});
 
 	process.on("SIGINT", () => {
