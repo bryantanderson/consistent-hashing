@@ -8,32 +8,23 @@ async function main() {
 		terminal: false,
 	});
 
-	// TODO: Rebalancing of the values when a node is added / removed
-	//
-	// If a node is added, values that are in the range of the subsequent clockwise node
-	// but now belong to the new node should be re-assigned to the new node
-	//
-	// If a node is removed, values that are in the range of the removed node but now belong to
-	// the subsequent clockwise node should be re-assigned to the new node
+	const hashRing = new HashRing();
 
 	rl.on("line", (line) => {
-		// TODO: Consistent hashing logic. Hashed value should be assigned to the next Redis node
-		// in the clockwise direction
 		console.log(`Received: ${line}`);
 
 		if (line === "PRINT_HASH_RING") {
-			// TODO: Log the hash ring to stdout
+			console.log(hashRing.toString());
+      return;
 		}
 
-		// TODO(maybe): Log the hash ring to stdout on an interval
+    hashRing.setValue(line, line);
 	});
 
 	rl.on("close", () => {
 		console.log("Input stream closed");
-		// TODO: Log the hash ring to stdout
+		console.log(hashRing.toString());
 	});
-
-	new HashRing();
 
 	process.on("SIGINT", () => {
 		rl.close();

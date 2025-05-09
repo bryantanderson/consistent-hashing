@@ -45,6 +45,10 @@ class HashRing {
     return cacheNode.client.get(key);
   }
 
+  toString() {
+    return JSON.stringify(this.ring, null, 2);
+  }
+
   private getCacheNode(key: string) {
     if (this.ring.length === 0) {
       return;
