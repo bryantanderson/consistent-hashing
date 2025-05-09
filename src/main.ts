@@ -24,7 +24,7 @@ async function main() {
 	});
 
 	rl.on("close", () => {
-		console.log("Input stream closed");
+		console.log("Readline closed. Printing hash ring visualization...");
 		console.log(hashRing.visualize());
 	});
 

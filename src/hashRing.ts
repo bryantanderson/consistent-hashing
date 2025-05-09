@@ -5,10 +5,10 @@ import { CacheNode, HashRingNode } from "./types";
 const VIRTUAL_NODE_COUNT = 100;
 const PING_FAILURE_THRESHOLD = 3;
 
-function generateMD5Hash(key: string) {
+function generateHash(key: string) {
 	const hexDigest = crypto.createHash("md5").update(key).digest("hex");
-	// It's easier to do comparison using integers
-	return parseInt(hexDigest.slice(0, 8), 16);
+	const hashValue = parseInt(hexDigest.slice(0, 8), 16);
+	return hashValue;
 }
 
 class HashRing {
@@ -128,7 +128,7 @@ class HashRing {
 			];
 
 			for (const key of sampleKeys) {
-				const hash = generateMD5Hash(key);
+				const hash = generateHash(key);
 				const node = this.getCacheNode(key);
 				output += `  ${key} → ${node?.nodeKey || "No node"} (0x${hash
 					.toString(16)
@@ -144,7 +144,7 @@ class HashRing {
 			return;
 		}
 
-		const hash = generateMD5Hash(key);
+		const hash = generateHash(key);
 
 		// If the hash's value is greater than the position of the last node in the ring,
 		// wrap around to the first node in the ring
@@ -180,7 +180,7 @@ class HashRing {
 		// Generate hashes for the address / identifier of each node
 		// and push the hashes onto the ring
 		for (const n of this.activeCacheNodes) {
-			const position = generateMD5Hash(n.nodeKey);
+			const position = generateHash(n.nodeKey);
 			this.ring.push({
 				position,
 				cacheNodeKey: n.nodeKey,
