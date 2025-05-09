@@ -1,6 +1,6 @@
 import * as crypto from "crypto";
 import { Redis } from "ioredis";
-import { HashRingNode, CacheNode } from "./types";
+import { CacheNode, HashRingNode } from "./types";
 
 const VIRTUAL_NODE_COUNT = 100;
 const PING_FAILURE_THRESHOLD = 3;
@@ -21,85 +21,94 @@ class HashRing {
 		this.cacheNodes.set(this.getCacheNodeKey(0), this.createCacheNode(0));
 		this.cacheNodes.set(this.getCacheNodeKey(1), this.createCacheNode(1));
 		this.cacheNodes.set(this.getCacheNodeKey(2), this.createCacheNode(2));
-    this.updateCacheNodes();
-    this.startProbe();
+		this.updateCacheNodes();
+		this.startProbe();
 	}
 
-  setValue(key: string, value: string) {
-    const cacheNode = this.getCacheNode(key);
-  
-    if (!cacheNode) {
-      return;
-    }
+	setValue(key: string, value: string) {
+		const cacheNode = this.getCacheNode(key);
 
-    return cacheNode.client.set(key, value);
-  }
+		if (!cacheNode) {
+			return;
+		}
 
-  getValue(key: string) {
-    const cacheNode = this.getCacheNode(key);
-  
-    if (!cacheNode) {
-      return;
-    }
+		return cacheNode.client.set(key, value);
+	}
 
-    return cacheNode.client.get(key);
-  }
+	getValue(key: string) {
+		const cacheNode = this.getCacheNode(key);
 
-  toString() {
-    return JSON.stringify(this.ring, null, 2);
-  }
+		if (!cacheNode) {
+			return;
+		}
 
-  private getCacheNode(key: string) {
-    if (this.ring.length === 0) {
-      return;
-    }
+		return cacheNode.client.get(key);
+	}
 
-    const hash = generateMD5Hash(key);
+	toString() {
+		return JSON.stringify(this.ring, null, 2);
+	}
 
-    // If the hash's value is greater than the position of the last node in the ring,
-    // wrap around to the first node in the ring
-    if (hash > this.ring[this.ring.length - 1].position) {
-      return this.cacheNodes.get(this.ring[0].cacheNodeKey);
-    }
+	private getCacheNode(key: string) {
+		if (this.ring.length === 0) {
+			return;
+		}
 
-    // Use binary search to find the next node clockwise in the ring
-    let low = 0;
-    let high = this.ring.length - 1;
+		const hash = generateMD5Hash(key);
 
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      const nodeAtMid = this.ring[mid];
+		// If the hash's value is greater than the position of the last node in the ring,
+		// wrap around to the first node in the ring
+		if (hash > this.ring[this.ring.length - 1].position) {
+			console.log(
+				`Hash is greater than the position of last node in the ring. Defaulting to first node ${this.ring[0].cacheNodeKey}`
+			);
+			return this.cacheNodes.get(this.ring[0].cacheNodeKey);
+		}
 
-      if (nodeAtMid.position < hash) {
-        low = mid + 1;
-      } else if (nodeAtMid.position > hash) {
-        high = mid - 1;
-      } else {
-        // Exact match found
-        return this.cacheNodes.get(nodeAtMid.cacheNodeKey);
-      }
-    }
+		// Use binary search to find the next node clockwise in the ring
+		let low = 0;
+		let high = this.ring.length - 1;
 
-    // After exiting the loop, 'low' is the first index with position >= hash
-    return this.cacheNodes.get(this.ring[low].cacheNodeKey);
-  }
+		while (low <= high) {
+			const mid = Math.floor((low + high) / 2);
+			const nodeAtMid = this.ring[mid];
 
-  private updateCacheNodes() {
-    this.ring = [];
-  
-    // Generate hashes for the address / identifier of each node
-    // and push the hashes onto the ring
-    for (const n of this.activeCacheNodes) {
-      const position = generateMD5Hash(n.nodeKey);
-      this.ring.push({
-        position,
-        cacheNodeKey: n.nodeKey,
-      });
-    }
+			if (nodeAtMid.position < hash) {
+				low = mid + 1;
+			} else if (nodeAtMid.position > hash) {
+				high = mid - 1;
+			} else {
+				// Exact match found
+				console.log(
+					`Exact match found for key ${key} at node ${nodeAtMid.cacheNodeKey}`
+				);
+				return this.cacheNodes.get(nodeAtMid.cacheNodeKey);
+			}
+		}
 
-    // Sort the ring by the position of the hashes
-    this.ring.sort((a, b) => a.position - b.position);
-  }
+		// After exiting the loop, 'low' is the first index with position >= hash
+		console.log(
+			`No exact match found for key ${key}. Returning node ${this.ring[low].cacheNodeKey}`
+		);
+		return this.cacheNodes.get(this.ring[low].cacheNodeKey);
+	}
+
+	private updateCacheNodes() {
+		this.ring = [];
+
+		// Generate hashes for the address / identifier of each node
+		// and push the hashes onto the ring
+		for (const n of this.activeCacheNodes) {
+			const position = generateMD5Hash(n.nodeKey);
+			this.ring.push({
+				position,
+				cacheNodeKey: n.nodeKey,
+			});
+		}
+
+		// Sort the ring by the position of the hashes
+		this.ring.sort((a, b) => a.position - b.position);
+	}
 
 	// Checks the liveness of the Redis nodes on an interval. If a node is found to be inactive,
 	// it is removed from the hash ring, and the hash ring is rebalanced.
@@ -111,43 +120,43 @@ class HashRing {
 					node.state = "active";
 					node.pingFailures = 0;
 				} catch (error) {
-          // If the node is inactive, hide it from the hash ring and rebalance
+					// If the node is inactive, hide it from the hash ring and rebalance
 					if (node.pingFailures >= PING_FAILURE_THRESHOLD) {
 						node.state = "inactive";
-            // TODO: Rebalance
+						// TODO: Rebalance
 						continue;
 					}
 					node.pingFailures++;
-        }
+				}
 			}
 		}, intervalMs);
 
-    process.on("SIGINT", () => {
-      clearInterval(interval);
-    })
+		process.on("SIGINT", () => {
+			clearInterval(interval);
+		});
 	}
 
 	private getCacheNodeKey(nodeCount: number) {
 		return `cache-node-${nodeCount}`;
 	}
 
-  private createCacheNode(nodeCount: number) {
-    return {
-      client: new Redis({
-        host: "localhost",
-        port: 6379 + nodeCount,
-      }),
-      nodeKey: this.getCacheNodeKey(nodeCount),
-      pingFailures: 0,
-      state: "active" as const,
-    };
-  }
+	private createCacheNode(nodeCount: number) {
+		return {
+			client: new Redis({
+				host: "localhost",
+				port: 6379 + nodeCount,
+			}),
+			nodeKey: this.getCacheNodeKey(nodeCount),
+			pingFailures: 0,
+			state: "active" as const,
+		};
+	}
 
-  get activeCacheNodes() {
-    const nodesRaw = this.cacheNodes.values();
-    // Ignore any inactive nodes
-    return Array.from(nodesRaw).filter((n) => n.state === "active");
-  }
+	get activeCacheNodes() {
+		const nodesRaw = this.cacheNodes.values();
+		// Ignore any inactive nodes
+		return Array.from(nodesRaw).filter((n) => n.state === "active");
+	}
 }
 
 export { HashRing };
