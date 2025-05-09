@@ -60,14 +60,52 @@ class AVLTree {
 		return 1 + Math.max(leftChildHeight, rightChildHeight);
 	}
 
+  // Rotations preserve the BST property (left < root < right)
+
+  // Visual representation of a right rotation:
+  //     y           x
+  //    / \         / \
+  //   x   T3  ->  T1  y
+  //  / \             / \
+  // T1  T2          T2  T3
 	private rightRotate(y: AVLTreeNode) {
-    // TODO
-		return y;
+    if (!y.leftChild) {
+      return y;
+    }
+    const x = y.leftChild;
+    const T2 = x.rightChild;
+
+    x.rightChild = y;
+    y.leftChild = T2;
+
+    y.height = this.computeNodeHeightFromChildren(y);
+    x.height = this.computeNodeHeightFromChildren(x);
+
+    // Return the new root
+		return x;
 	}
 
+  // Visual representation of a left rotation:
+  //   x               y
+  //  / \             / \
+  // T1  y     ->    x   T3
+  //    / \         / \
+  //   T2  T3      T1  T2
 	private leftRotate(x: AVLTreeNode) {
-    // TODO
-		return x;
+    if (!x.rightChild) {
+      return x;
+    }
+    const y = x.rightChild;
+    const T2 = y.leftChild;
+    
+    y.leftChild = x;
+    x.rightChild = T2;
+
+    x.height = this.computeNodeHeightFromChildren(x);
+    y.height = this.computeNodeHeightFromChildren(y);
+
+    // Return the new root
+		return y;
 	}
 
 	// Explanation: https://www.geeksforgeeks.org/insertion-in-an-avl-tree/
