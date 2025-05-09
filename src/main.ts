@@ -1,5 +1,6 @@
 import * as readline from "readline";
 import { HashRing } from "./hashRing";
+import { COMMANDS } from "./constants";
 
 function hookExceptionHandlers() {
 	process.on("uncaughtException", (error) => {
@@ -27,7 +28,7 @@ async function main() {
 	rl.on("line", async (line) => {
 		console.log(`Received prompt: ${line}`);
 
-		if (line === "VISUALIZE") {
+		if (line === COMMANDS.VISUALIZE) {
 			console.log(hashRing.visualize());
 			return;
 		}
@@ -35,8 +36,19 @@ async function main() {
 		const parts = line.split(" ");
 
 		switch (parts.length) {
+      case 1: {
+        if (parts[0] !== COMMANDS.TRIGGER_NODE_FAILURE) {
+          console.error(
+            `Invalid usage: ${line}. Expected "TRIGGER_NODE_FAILURE".`
+          );
+					return;
+				}
+        console.log(`Triggering node failure...`);
+        // TODO: Trigger node failure
+        break;
+			}
 			case 2: {
-				if (parts[0] !== "GET") {
+				if (parts[0] !== COMMANDS.GET) {
 					console.error(
 						`Invalid usage: ${line}. Expected "GET <key>".`
 					);
@@ -48,7 +60,7 @@ async function main() {
 				break;
 			}
 			case 3: {
-				if (parts[0] !== "SET") {
+				if (parts[0] !== COMMANDS.SET) {
 					console.error(
 						`Invalid usage: ${line}. Expected "SET <key> <value>".`
 					);

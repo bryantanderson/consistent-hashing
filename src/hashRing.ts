@@ -88,6 +88,10 @@ class HashRing {
 		}
 	}
 
+	private rebalance(failedNode: PhysicalNode) {
+		console.log(`Physical node ${failedNode.nodeId} has failed. Redistributing keys...`);
+	}
+
 	private getPhysicalNode(key: string) {
 		if (this.ring.length === 0) {
 			return;
@@ -106,6 +110,7 @@ class HashRing {
 		}
 
 		// Use binary search to find the next node clockwise in the ring
+    // Could also use linear search but that's O(n) compared to O(log n)
 		let low = 0;
 		let high = this.ring.length - 1;
 
@@ -162,7 +167,7 @@ class HashRing {
 					// If the node is inactive, hide it from the hash ring and rebalance
 					if (node.pingFailures >= PING_FAILURE_THRESHOLD) {
 						node.state = NODE_STATES.INACTIVE;
-						// TODO: Rebalance
+						this.rebalance(node);
 						continue;
 					}
 					node.pingFailures++;

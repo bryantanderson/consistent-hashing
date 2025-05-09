@@ -9,8 +9,16 @@ const NODE_STATES = {
 
 type NodeState = (typeof NODE_STATES)[keyof typeof NODE_STATES];
 
+const COMMANDS = {
+	GET: "GET",
+	SET: "SET",
+	VISUALIZE: "VISUALIZE",
+	TRIGGER_NODE_FAILURE: "TRIGGER_NODE_FAILURE",
+} as const;
+
 export {
 	NODE_STATES,
+  COMMANDS,
 	NodeState,
 	PHYSICAL_NODE_COUNT,
 	PING_FAILURE_THRESHOLD,
