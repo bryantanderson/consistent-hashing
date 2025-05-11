@@ -127,9 +127,9 @@ class AVLTree {
 		// In an AVL (BST in general) tree, all keys to the left of a node are less than the node's key,
 		// and all keys to the right of a node are greater than the node's key.
 		// Duplicate keys are not allowed in a BST.
-		if (key < node.key) {
+		if (key.position < node.key.position) {
 			node.leftChild = this.insertNode(node.leftChild, key);
-		} else if (key > node.key) {
+		} else if (key.position > node.key.position) {
 			node.rightChild = this.insertNode(node.rightChild, key);
 		} else {
 			return node;
@@ -144,26 +144,42 @@ class AVLTree {
 
 		// Left Left case, where the inserted node ends up on the left subtree
 		// of the node's left child node
-		if (balance > 1 && node.leftChild && key < node.leftChild.key) {
+		if (
+			balance > 1 &&
+			node.leftChild &&
+			key.position < node.leftChild.key.position
+		) {
 			return this.rightRotate(node);
 		}
 
 		// Left Right case, where the inserted node ends up on the right subtree
 		// of the node's left child node
-		if (balance > 1 && node.leftChild && key > node.leftChild.key) {
+		if (
+			balance > 1 &&
+			node.leftChild &&
+			key.position > node.leftChild.key.position
+		) {
 			node.leftChild = this.leftRotate(node.leftChild);
 			return this.rightRotate(node);
 		}
 
 		// Right Right case, where the inserted node ends up on the right subtree
 		// of the node's right child node
-		if (balance < -1 && node.rightChild && key > node.rightChild.key) {
+		if (
+			balance < -1 &&
+			node.rightChild &&
+			key.position > node.rightChild.key.position
+		) {
 			return this.leftRotate(node);
 		}
 
 		// Right Left case, where the inserted node ends up on the left subtree
 		// of the node's right child node
-		if (balance < -1 && node.rightChild && key < node.rightChild.key) {
+		if (
+			balance < -1 &&
+			node.rightChild &&
+			key.position < node.rightChild.key.position
+		) {
 			node.rightChild = this.rightRotate(node.rightChild);
 			return this.leftRotate(node);
 		}
@@ -181,53 +197,53 @@ class AVLTree {
 		this.preOrderTraversal(node.rightChild);
 	}
 
-  // As the height of the tree is O(log n), the time complexity of this operation is O(log n).
-  private findSmallestNode() {
-    if (!this.root) {
-      return null;
-    }
-    let current = this.root;
+	// As the height of the tree is O(log n), the time complexity of this operation is O(log n).
+	private findSmallestNode() {
+		if (!this.root) {
+			return null;
+		}
+		let current = this.root;
 
-    while (current.leftChild) {
-      current = current.leftChild;
-    }
+		while (current.leftChild) {
+			current = current.leftChild;
+		}
 
-    return current.key;
-  }
+		return current.key;
+	}
 
 	insert(key: HashRingNode) {
 		this.root = this.insertNode(this.root, key);
 		return this.root;
 	}
 
-  findNextClockwiseNode(target: HashRingNode) {
-    if (!this.root) {
-      return null;
-    }
-    // We want to find the next successor node in the clockwise duration
-    let current:  AVLTreeNode | null = this.root;
-    let successor: AVLTreeNode | null = null;
+	findNextClockwiseNode(target: HashRingNode) {
+		if (!this.root) {
+			return null;
+		}
+		// We want to find the next successor node in the clockwise duration
+		let current: AVLTreeNode | null = this.root;
+		let successor: AVLTreeNode | null = null;
 
-    while (current) {
-      // If current node is >= target, it's a potential successor
-      if (current.key >= target) {
-        successor = current;
-        // Continue left to find potentially closer nodes
-        current = current.leftChild;
-      } else {
-        // Current is < target, go right as this cannot be a successor node
-        current = current.rightChild;
-      }
-    }
+		while (current) {
+			// If current node is >= target, it's a potential successor
+			if (current.key.position >= target.position) {
+				successor = current;
+				// Continue left to find potentially closer nodes
+				current = current.leftChild;
+			} else {
+				// Current is < target, go right as this cannot be a successor node
+				current = current.rightChild;
+			}
+		}
 
-    if (successor) {
-      return successor.key;
-    }
+		if (successor) {
+			return successor.key;
+		}
 
-    // If no successor node is found, return the smallest node in the tree
-    // This means we're wrapping around the ring to the first (smallest) node
-    return this.findSmallestNode();
-  }
+		// If no successor node is found, return the smallest node in the tree
+		// This means we're wrapping around the ring to the first (smallest) node
+		return this.findSmallestNode();
+	}
 
 	preOrder() {
 		this.preOrderTraversal(this.root);
