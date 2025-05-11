@@ -181,10 +181,53 @@ class AVLTree {
 		this.preOrderTraversal(node.rightChild);
 	}
 
+  // As the height of the tree is O(log n), the time complexity of this operation is O(log n).
+  private findSmallestNode() {
+    if (!this.root) {
+      return null;
+    }
+    let current = this.root;
+
+    while (current.leftChild) {
+      current = current.leftChild;
+    }
+
+    return current.key;
+  }
+
 	insert(key: HashRingNode) {
 		this.root = this.insertNode(this.root, key);
 		return this.root;
 	}
+
+  findNextClockwiseNode(target: HashRingNode) {
+    if (!this.root) {
+      return null;
+    }
+    // We want to find the next successor node in the clockwise duration
+    let current:  AVLTreeNode | null = this.root;
+    let successor: AVLTreeNode | null = null;
+
+    while (current) {
+      // If current node is >= target, it's a potential successor
+      if (current.key >= target) {
+        successor = current;
+        // Continue left to find potentially closer nodes
+        current = current.leftChild;
+      } else {
+        // Current is < target, go right as this cannot be a successor node
+        current = current.rightChild;
+      }
+    }
+
+    if (successor) {
+      return successor.key;
+    }
+
+    // If no successor node is found, return the smallest node in the tree
+    // This means we're wrapping around the ring to the first (smallest) node
+    return this.findSmallestNode();
+  }
 
 	preOrder() {
 		this.preOrderTraversal(this.root);
