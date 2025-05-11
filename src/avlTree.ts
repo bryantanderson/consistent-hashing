@@ -1,10 +1,12 @@
+import { HashRingNode } from "./types";
+
 class AVLTreeNode {
-	key: string;
+	key: HashRingNode;
 	leftChild: AVLTreeNode | null;
 	rightChild: AVLTreeNode | null;
 	height: number;
 
-	constructor(key: string) {
+	constructor(key: HashRingNode) {
 		this.key = key;
 		this.leftChild = null;
 		this.rightChild = null;
@@ -36,7 +38,7 @@ class AVLTreeNode {
 class AVLTree {
 	root: AVLTreeNode | null;
 
-	constructor(key?: string) {
+	constructor(key?: HashRingNode) {
 		if (key) {
 			this.root = new AVLTreeNode(key);
 		} else {
@@ -116,7 +118,7 @@ class AVLTree {
 	}
 
 	// Explanation: https://www.geeksforgeeks.org/insertion-in-an-avl-tree/
-	private insertNode(node: AVLTreeNode | null, key: string) {
+	private insertNode(node: AVLTreeNode | null, key: HashRingNode) {
 		// Base case: If the node is null, we insert a new node in this position
 		if (node === null) {
 			return new AVLTreeNode(key);
@@ -170,12 +172,23 @@ class AVLTree {
 		return node;
 	}
 
-	insert(key: string) {
+	private preOrderTraversal(node: AVLTreeNode | null) {
+		if (!node) {
+			return;
+		}
+		console.log(node.key);
+		this.preOrderTraversal(node.leftChild);
+		this.preOrderTraversal(node.rightChild);
+	}
+
+	insert(key: HashRingNode) {
 		this.root = this.insertNode(this.root, key);
 		return this.root;
 	}
 
-  // TODO: Pre-order traversal functions
+	preOrder() {
+		this.preOrderTraversal(this.root);
+	}
 }
 
 export { AVLTree };
