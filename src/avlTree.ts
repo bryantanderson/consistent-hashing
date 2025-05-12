@@ -188,13 +188,14 @@ class AVLTree {
 		return node;
 	}
 
-	private preOrderTraversal(node: AVLTreeNode | null) {
+	private preOrderTraversal(node: AVLTreeNode | null, keys: HashRingNode[]) {
 		if (!node) {
-			return;
+			return keys;
 		}
-		console.log(node.key);
-		this.preOrderTraversal(node.leftChild);
-		this.preOrderTraversal(node.rightChild);
+		keys.push(node.key);
+		this.preOrderTraversal(node.leftChild, keys);
+		this.preOrderTraversal(node.rightChild, keys);
+		return keys;
 	}
 
 	// As the height of the tree is O(log n), the time complexity of this operation is O(log n).
@@ -202,6 +203,7 @@ class AVLTree {
 		if (!this.root) {
 			return null;
 		}
+  
 		let current = this.root;
 
 		while (current.leftChild) {
@@ -216,17 +218,18 @@ class AVLTree {
 		return this.root;
 	}
 
-	findNextClockwiseNode(target: HashRingNode) {
+	findNextClockwiseNode(hash: number) {
 		if (!this.root) {
 			return null;
 		}
+
 		// We want to find the next successor node in the clockwise duration
 		let current: AVLTreeNode | null = this.root;
 		let successor: AVLTreeNode | null = null;
 
 		while (current) {
-			// If current node is >= target, it's a potential successor
-			if (current.key.position >= target.position) {
+			// If current node is >= hash, it's a potential successor
+			if (current.key.position >= hash) {
 				successor = current;
 				// Continue left to find potentially closer nodes
 				current = current.leftChild;
@@ -246,7 +249,7 @@ class AVLTree {
 	}
 
 	preOrder() {
-		this.preOrderTraversal(this.root);
+		return this.preOrderTraversal(this.root, []);
 	}
 }
 

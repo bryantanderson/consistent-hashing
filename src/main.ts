@@ -4,11 +4,11 @@ import { COMMANDS } from "./constants";
 
 function hookExceptionHandlers() {
 	process.on("uncaughtException", (error) => {
-		console.error(`Uncaught exception: ${JSON.stringify(error)}`);
+		console.trace(`Uncaught exception: ${JSON.stringify(error)}`);
 	});
 
 	process.on("unhandledRejection", (error) => {
-		console.error(`Unhandled rejection: ${JSON.stringify(error)}`);
+		console.trace(`Unhandled rejection: ${JSON.stringify(error)}`);
 	});
 }
 

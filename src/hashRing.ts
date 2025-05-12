@@ -1,16 +1,16 @@
 import { Redis } from "ioredis";
 import { NODE_STATES, PING_FAILURE_THRESHOLD } from "./constants";
-import { HashRingNode, PhysicalNode } from "./types";
+import { PhysicalNode } from "./types";
 import { generateHash, visualizeHashRing } from "./utils";
+import { AVLTree } from "./avlTree";
 
 class HashRing {
-	private ring: HashRingNode[];
+	private ring: AVLTree;
 	private verboseLog: boolean = false;
 	private physicalNodeRegistry: Map<string, PhysicalNode>;
 
 	constructor() {
-		// TODO: Make this a BST, such as red-black tree for O(log n) operations.
-		this.ring = [];
+		this.ring = new AVLTree();
 		this.verboseLog = process.env.VERBOSE_LOGGING_ENABLED !== "false";
 		// In a production environment, the data structure is stored on a centralized highly available service.
 		// Alternatively, the data structure is stored on each node, and the state information between the nodes
@@ -30,123 +30,23 @@ class HashRing {
 		this.startProbe();
 	}
 
-	setValue(key: string, value: string) {
-		const cacheNode = this.getPhysicalNode(key);
-
-		if (!cacheNode) {
-			return;
-		}
-
-		if (this.verboseLog) {
-			console.log(
-				`Setting key ${key}. Next clockwise Cache node: ${cacheNode.nodeId}`
-			);
-		}
-
-		try {
-			return cacheNode.client.set(key, value);
-		} catch (error) {
-			console.error(`Error setting key ${key}:`, error);
-			return null;
-		}
-	}
-
-	getValue(key: string) {
-		const cacheNode = this.getPhysicalNode(key);
-
-		if (!cacheNode) {
-			return;
-		}
-
-		if (this.verboseLog) {
-			console.log(
-				`Fetching key ${key}. Next clockwise Cache node: ${cacheNode.nodeId}`
-			);
-		}
-
-		try {
-			return cacheNode.client.get(key);
-		} catch (error) {
-			console.error(`Error retrieving key ${key}:`, error);
-			return null;
-		}
-	}
-
-	visualize() {
-		return visualizeHashRing(this.ring, this.getPhysicalNode);
-	}
-
-	async shutdown() {
-		for (const node of this.physicalNodeRegistry.values()) {
-			console.log(`Closing connection to cache node ${node.nodeId}...`);
-			try {
-				await node.client.quit();
-			} catch (error) {
-				console.error(
-					`Error disconnecting from node: ${JSON.stringify(error)}`
-				);
-			}
-		}
-	}
-
-	addNode(node: PhysicalNode) {
-		console.log(
-			`Physical node ${node.nodeId} added. Redistributing keys...`
-		);
-		// TODO: Add node to ring. The keys that fall within the range of the new node 
-    // are moved out from the immediate neighboring node in the clockwise direction
-	}
-
-	removeNode(failedNode: PhysicalNode) {
-		console.log(
-			`Physical node ${failedNode.nodeId} has failed. Redistributing keys...`
-		);
-		// TODO: Remove node from ring. The keys that belonged to the node
-		// are moved out to the immediate neighboring node in the clockwise direction.
-	}
-
-	private getPhysicalNode(key: string) {
-		if (this.ring.length === 0) {
+  private getPhysicalNode(key: string) {
+		if (!this.ring || !this.ring.root) {
 			return;
 		}
 
 		const hash = generateHash(key);
+    const successorNode = this.ring.findNextClockwiseNode(hash);
 
-		if (this.verboseLog) {
-			console.log(`Key ${key}. Computed hash: ${hash}`);
+		if (!successorNode) {
+			return;
 		}
 
-		// If the hash's value is greater than the position of the last node in the ring,
-		// wrap around to the first node in the ring
-		if (hash > this.ring[this.ring.length - 1].position) {
-			return this.physicalNodeRegistry.get(this.ring[0].physicalNodeId);
-		}
-
-		// Use binary search to find the next node clockwise in the ring
-		// Could also use linear search but that's O(n) compared to O(log n)
-		let low = 0;
-		let high = this.ring.length - 1;
-
-		while (low <= high) {
-			const mid = Math.floor((low + high) / 2);
-			const nodeAtMid = this.ring[mid];
-
-			if (nodeAtMid.position < hash) {
-				low = mid + 1;
-			} else if (nodeAtMid.position > hash) {
-				high = mid - 1;
-			} else {
-				// Exact match found
-				return this.physicalNodeRegistry.get(nodeAtMid.physicalNodeId);
-			}
-		}
-
-		// After exiting the loop, 'low' is the first index with position >= hash
-		return this.physicalNodeRegistry.get(this.ring[low].physicalNodeId);
+		return this.physicalNodeRegistry.get(successorNode.physicalNodeId);
 	}
 
 	private createVirtualNodes() {
-		this.ring = [];
+		this.ring = new AVLTree();
 
 		const virtualNodeCount = parseInt(
 			process.env.VIRTUAL_NODE_COUNT ?? "5"
@@ -159,16 +59,13 @@ class HashRing {
 			for (let i = 0; i < virtualNodeCount; i++) {
 				const virtualNodeId = `${n.nodeId}-virtual-${i}`;
 				const position = generateHash(virtualNodeId);
-				this.ring.push({
+				this.ring.insert({
 					position,
 					virtualNodeId,
 					physicalNodeId: n.nodeId,
 				});
 			}
 		}
-
-		// Sort the ring by the position of the hashes
-		this.ring.sort((a, b) => a.position - b.position);
 	}
 
 	// Checks the liveness of the Redis nodes on an interval. If a node is found to be inactive,
@@ -220,6 +117,86 @@ class HashRing {
 		return Array.from(nodesRaw).filter(
 			(n) => n.state === NODE_STATES.ACTIVE
 		);
+	}
+
+	setValue(key: string, value: string) {
+		const cacheNode = this.getPhysicalNode(key);
+
+		if (!cacheNode) {
+			return;
+		}
+
+		if (this.verboseLog) {
+			console.log(
+				`Setting key ${key}. Next clockwise Cache node: ${cacheNode.nodeId}`
+			);
+		}
+
+		try {
+			return cacheNode.client.set(key, value);
+		} catch (error) {
+			console.error(`Error setting key ${key}:`, error);
+			return null;
+		}
+	}
+
+	getValue(key: string) {
+		const cacheNode = this.getPhysicalNode(key);
+
+		if (!cacheNode) {
+			return;
+		}
+
+		if (this.verboseLog) {
+			console.log(
+				`Fetching key ${key}. Next clockwise Cache node: ${cacheNode.nodeId}`
+			);
+		}
+
+		try {
+			return cacheNode.client.get(key);
+		} catch (error) {
+			console.error(`Error retrieving key ${key}:`, error);
+			return null;
+		}
+	}
+
+	visualize() {
+		try {
+      return visualizeHashRing(this.ring, this.getPhysicalNode.bind(this));
+    } catch (error) {
+      console.error(`Error while visualizing hash ring: ${JSON.stringify(error)}`);
+      return 'Error while visualizing hash ring';
+    }
+	}
+
+	async shutdown() {
+		for (const node of this.physicalNodeRegistry.values()) {
+			console.log(`Closing connection to cache node ${node.nodeId}...`);
+			try {
+				await node.client.quit();
+			} catch (error) {
+				console.error(
+					`Error disconnecting from node: ${JSON.stringify(error)}`
+				);
+			}
+		}
+	}
+
+	addNode(node: PhysicalNode) {
+		console.log(
+			`Physical node ${node.nodeId} added. Redistributing keys...`
+		);
+		// TODO: Add node to ring. The keys that fall within the range of the new node 
+    // are moved out from the immediate neighboring node in the clockwise direction
+	}
+
+	removeNode(failedNode: PhysicalNode) {
+		console.log(
+			`Physical node ${failedNode.nodeId} has failed. Redistributing keys...`
+		);
+		// TODO: Remove node from ring. The keys that belonged to the node
+		// are moved out to the immediate neighboring node in the clockwise direction.
 	}
 }
 

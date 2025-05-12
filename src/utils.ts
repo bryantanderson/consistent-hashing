@@ -1,5 +1,6 @@
 import * as crypto from "crypto";
-import { HashRingNode, PhysicalNode } from "./types";
+import { AVLTree } from "./avlTree";
+import { PhysicalNode } from "./types";
 
 function generateHash(key: string) {
 	const hexDigest = crypto.createHash("md5").update(key).digest("hex");
@@ -14,16 +15,13 @@ function generateHash(key: string) {
 
 type PhysicalNodeGetter = (key: string) => PhysicalNode | undefined;
 
-function visualizeHashRing(
-	ring: HashRingNode[],
-	getPhysicalNode: PhysicalNodeGetter
-) {
-	// Create a circular representation with 64 positions
+function visualizeHashRing(ring: AVLTree, getPhysicalNode: PhysicalNodeGetter) {
 	const positions = 64;
 	const circle = new Array(positions).fill("·");
+	const ringNodes = ring.preOrder();
 
 	// Map node positions to circle positions
-	for (const node of ring) {
+	for (const node of ringNodes) {
 		// Scale the position to our circle size
 		const scaled = Math.floor((node.position / 0xffffffff) * positions);
 		circle[scaled] = "◆";
@@ -86,13 +84,13 @@ function visualizeHashRing(
 	// Node positions in hex
 	output += "Node Positions:\n";
 
-	for (const node of ring) {
+	for (const node of ringNodes) {
 		const hexPosition = node.position.toString(16).padStart(8, "0");
 		output += `  ${node.virtualNodeId}: 0x${hexPosition}\n`;
 	}
 
 	// Sample key distributions
-	if (ring.length > 0) {
+	if (ringNodes.length > 0) {
 		output += "\nSample Key Distribution:\n";
 		const sampleKeys = [
 			"user:1001",
