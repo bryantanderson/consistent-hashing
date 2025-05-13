@@ -13,10 +13,16 @@ function generateHash(key: string) {
 	return hashValue;
 }
 
-type PhysicalNodeGetter = (key: string) => PhysicalNode | undefined;
+type VisualizeHashRingParams = {
+	ring: AVLTree;
+	getPhysicalNode: (key: string) => PhysicalNode | undefined;
+	positions?: number;
+};
 
-function visualizeHashRing(ring: AVLTree, getPhysicalNode: PhysicalNodeGetter) {
-	const positions = 64;
+function visualizeHashRing(params: VisualizeHashRingParams) {
+	const { ring, getPhysicalNode, positions = 128 } = params;
+
+	// Create array of dots with desired length
 	const circle = new Array(positions).fill("·");
 	const ringNodes = ring.preOrder();
 
@@ -27,59 +33,32 @@ function visualizeHashRing(ring: AVLTree, getPhysicalNode: PhysicalNodeGetter) {
 		circle[scaled] = "◆";
 	}
 
-	// Build the ring visualization
 	let output = "Hash Ring Visualization:\n\n";
 
-	// Top quarter
-	output += "         " + circle.slice(0, 8).join(" ") + "\n";
+	const radius = 15;
+	const center = { x: radius, y: radius };
 
-	// Top-right quarter
-	output += "       " + circle[63] + "                " + circle[8] + "\n";
-	output += "     " + circle[62] + "                    " + circle[9] + "\n";
-	output +=
-		"    " + circle[61] + "                      " + circle[10] + "\n";
-	output +=
-		"   " + circle[60] + "                        " + circle[11] + "\n";
-	output +=
-		"  " + circle[59] + "                          " + circle[12] + "\n";
-	output +=
-		" " + circle[58] + "                            " + circle[13] + "\n";
-	output +=
-		" " + circle[57] + "                            " + circle[14] + "\n";
-	output +=
-		" " + circle[56] + "                            " + circle[15] + "\n";
+	// Create a 2D grid representation
+	const grid = Array(radius * 2 + 1)
+		.fill(0)
+		.map(() => Array(radius * 2 + 1).fill(" "));
 
-	// Left and right sides
-	output += circle[55] + "                              " + circle[16] + "\n";
-	output += circle[54] + "                              " + circle[17] + "\n";
-	output += circle[53] + "                              " + circle[18] + "\n";
-	output += circle[52] + "                              " + circle[19] + "\n";
-	output += circle[51] + "                              " + circle[20] + "\n";
-	output += circle[50] + "                              " + circle[21] + "\n";
-	output += circle[49] + "                              " + circle[22] + "\n";
-	output += circle[48] + "                              " + circle[23] + "\n";
+	// Place dots around the circle
+	for (let i = 0; i < positions; i++) {
+		// Convert position to angle (in radians)
+		const angle = (i / positions) * 2 * Math.PI;
 
-	// Bottom-left quarter
-	output +=
-		" " + circle[47] + "                            " + circle[24] + "\n";
-	output +=
-		" " + circle[46] + "                            " + circle[25] + "\n";
-	output +=
-		" " + circle[45] + "                            " + circle[26] + "\n";
-	output +=
-		"  " + circle[44] + "                          " + circle[27] + "\n";
-	output +=
-		"   " + circle[43] + "                        " + circle[28] + "\n";
-	output +=
-		"    " + circle[42] + "                      " + circle[29] + "\n";
-	output += "     " + circle[41] + "                    " + circle[30] + "\n";
-	output += "       " + circle[40] + "                " + circle[31] + "\n";
+		const x = Math.round(center.x + radius * Math.cos(angle));
+		const y = Math.round(center.y + radius * Math.sin(angle));
 
-	// Bottom quarter
-	output += "         " + circle.slice(32, 40).join(" ") + "\n\n";
+		grid[y][x] = circle[i];
+	}
 
-	// Legend
-	output += "Legend: ◆ = Node  · = Empty position\n\n";
+	for (const row of grid) {
+		output += row.join("") + "\n";
+	}
+
+	output += "\nLegend: ◆ = Node  · = Empty position\n\n";
 
 	// Node positions in hex
 	output += "Node Positions:\n";
@@ -89,7 +68,6 @@ function visualizeHashRing(ring: AVLTree, getPhysicalNode: PhysicalNodeGetter) {
 		output += `  ${node.virtualNodeId}: 0x${hexPosition}\n`;
 	}
 
-	// Sample key distributions
 	if (ringNodes.length > 0) {
 		output += "\nSample Key Distribution:\n";
 		const sampleKeys = [

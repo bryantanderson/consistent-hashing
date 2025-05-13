@@ -163,7 +163,10 @@ class HashRing {
 
 	visualize() {
 		try {
-      return visualizeHashRing(this.ring, this.getPhysicalNode.bind(this));
+      return visualizeHashRing({
+        ring: this.ring,
+        getPhysicalNode: this.getPhysicalNode.bind(this),
+      });
     } catch (error) {
       console.error(`Error while visualizing hash ring: ${JSON.stringify(error)}`);
       return 'Error while visualizing hash ring';
