@@ -27,7 +27,7 @@ class HashRing {
 		}
 
 		this.createVirtualNodes();
-		this.startProbe();
+		this.startHealthCheckProbe();
 	}
 
   private getPhysicalNode(key: string) {
@@ -70,7 +70,7 @@ class HashRing {
 
 	// Checks the liveness of the Redis nodes on an interval. If a node is found to be inactive,
 	// it is removed from the hash ring, and the hash ring is rebalanced.
-	private startProbe(intervalMs: number = 1000) {
+	private startHealthCheckProbe(intervalMs: number = 1000) {
 		const interval = setInterval(() => {
 			for (const node of this.physicalNodeRegistry.values()) {
 				try {
