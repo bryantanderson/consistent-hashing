@@ -1,13 +1,17 @@
 import { Redis } from "ioredis";
+import { AVLTree } from "./avlTree";
 import { NODE_STATES, PING_FAILURE_THRESHOLD } from "./constants";
 import { PhysicalNode } from "./types";
 import { generateHash, visualizeHashRing } from "./utils";
-import { AVLTree } from "./avlTree";
 
 class HashRing {
 	private ring: AVLTree;
-	private verboseLog: boolean = false;
 	private physicalNodeRegistry: Map<string, PhysicalNode>;
+
+	// Environment variable based configuration
+	private verboseLog: boolean = false;
+	private virtualNodeCount: number;
+	private physicalNodeCount: number;
 
 	constructor() {
 		this.ring = new AVLTree();
@@ -17,9 +21,12 @@ class HashRing {
 		// is synchronized through the gossip protocol
 		this.physicalNodeRegistry = new Map();
 
-		const physicalNodeCount = parseInt(process.env.PHYSICAL_NODES ?? "3");
+		this.virtualNodeCount = parseInt(process.env.VIRTUAL_NODE_COUNT ?? "5");
+		this.physicalNodeCount = parseInt(
+			process.env.PHYSICAL_NODE_COUNT ?? "3"
+		);
 
-		for (let i = 0; i < physicalNodeCount; i++) {
+		for (let i = 0; i < this.physicalNodeCount; i++) {
 			this.physicalNodeRegistry.set(
 				this.getPhysicalNodeId(i),
 				this.createPhysicalNode(i)
@@ -30,13 +37,13 @@ class HashRing {
 		this.startHealthCheckProbe();
 	}
 
-  private getPhysicalNode(key: string) {
+	private getPhysicalNode(key: string) {
 		if (!this.ring || !this.ring.root) {
 			return;
 		}
 
 		const hash = generateHash(key);
-    const successorNode = this.ring.findNextClockwiseNode(hash);
+		const successorNode = this.ring.findNextClockwiseNode(hash);
 
 		if (!successorNode) {
 			return;
@@ -48,19 +55,15 @@ class HashRing {
 	private createVirtualNodes() {
 		this.ring = new AVLTree();
 
-		const virtualNodeCount = parseInt(
-			process.env.VIRTUAL_NODE_COUNT ?? "5"
-		);
-
 		// Generate hashes for the address / identifier of each node
 		// and push the hashes onto the ring
 		for (const n of this.activeCacheNodes) {
 			// For each node, generate virtual nodes
-			for (let i = 0; i < virtualNodeCount; i++) {
+			for (let i = 0; i < this.virtualNodeCount; i++) {
 				const virtualNodeId = `${n.nodeId}-virtual-${i}`;
-				const position = generateHash(virtualNodeId);
+				const nodePosition = generateHash(virtualNodeId);
 				this.ring.insert({
-					position,
+					position: nodePosition,
 					virtualNodeId,
 					physicalNodeId: n.nodeId,
 				});
@@ -111,9 +114,80 @@ class HashRing {
 		};
 	}
 
+	private async redistributeKeysBetweenNodes(
+		source: PhysicalNode,
+		target: PhysicalNode,
+		targetVirtualNodePositions: Array<number>
+	) {
+		let cursor = "0";
+		let redistributed = 0;
+
+		while (true) {
+			// Ref: https://redis.io/docs/latest/commands/scan/
+			const [nextCursor, keys] = await source.client.scan(
+				cursor,
+				"COUNT",
+				1000
+			);
+
+			if (!keys.length) {
+				break;
+			}
+
+			// SCAN may return the same element multiple times, so we use a set to ensure
+			// no duplicates are processed
+			const processed = new Set<string>();
+			const keysToRedistribute = [];
+
+			for (const key of keys) {
+				if (processed.has(key)) {
+					continue;
+				}
+				const hash = generateHash(key);
+				// Check if the key belongs to any of the new virtual nodes
+				for (const p of targetVirtualNodePositions) {
+					if (hash <= p) {
+						keysToRedistribute.push(key);
+						break;
+					}
+				}
+				processed.add(key);
+			}
+
+			if (!keysToRedistribute.length) {
+				continue;
+			}
+
+			const values = await source.client.mget(...keysToRedistribute);
+
+			if (!values) {
+				continue;
+			}
+
+			const setPipeline = target.client.pipeline();
+			const deletePipeline = source.client.pipeline();
+
+			for (let i = 0; i < keysToRedistribute.length; i++) {
+				setPipeline.set(keysToRedistribute[i], values[i] ?? "N/A");
+				deletePipeline.del(keysToRedistribute[i]);
+				redistributed++;
+			}
+
+			await Promise.all([setPipeline.exec(), deletePipeline.exec()]);
+
+			// Check whether we've reached the end of the pagination
+			if (nextCursor === "0") {
+				break;
+			}
+
+			cursor = nextCursor;
+		}
+
+		return redistributed;
+	}
+
 	private get activeCacheNodes() {
 		const nodesRaw = this.physicalNodeRegistry.values();
-		// Ignore any inactive nodes
 		return Array.from(nodesRaw).filter(
 			(n) => n.state === NODE_STATES.ACTIVE
 		);
@@ -163,14 +237,16 @@ class HashRing {
 
 	visualize() {
 		try {
-      return visualizeHashRing({
-        ring: this.ring,
-        getPhysicalNode: this.getPhysicalNode.bind(this),
-      });
-    } catch (error) {
-      console.error(`Error while visualizing hash ring: ${JSON.stringify(error)}`);
-      return 'Error while visualizing hash ring';
-    }
+			return visualizeHashRing({
+				ring: this.ring,
+				getPhysicalNode: this.getPhysicalNode.bind(this),
+			});
+		} catch (error) {
+			console.error(
+				`Error while visualizing hash ring: ${JSON.stringify(error)}`
+			);
+			return "Error while visualizing hash ring";
+		}
 	}
 
 	async shutdown() {
@@ -186,12 +262,82 @@ class HashRing {
 		}
 	}
 
-	addNode(node: PhysicalNode) {
-		console.log(
-			`Physical node ${node.nodeId} added. Redistributing keys...`
-		);
-		// TODO: Add node to ring. The keys that fall within the range of the new node 
-    // are moved out from the immediate neighboring node in the clockwise direction
+	// TODO: Test
+	async addNode(node: PhysicalNode) {
+		console.log(`Physical node ${node.nodeId} added to ring`);
+
+		let totalRedistributed = 0;
+
+		const virtualNodes = [];
+		// Maps an affected physical node's ID to a list of virtual node positions that will
+		// overlap with the positions of existing virtual nodes for the given physical node
+		const keyRedistributionMap = new Map<string, Array<number>>();
+
+		for (let i = 0; i < this.virtualNodeCount; i++) {
+			const virtualNodeId = `${node.nodeId}-virtual-${i}`;
+			const nodePosition = generateHash(virtualNodeId);
+
+			virtualNodes.push({
+				virtualNodeId,
+				nodePosition,
+			});
+
+			const successorNode = this.ring.findNextClockwiseNode(nodePosition);
+
+			if (successorNode && successorNode.physicalNodeId !== node.nodeId) {
+				// Group by physical node to avoid redundant scans
+				if (!keyRedistributionMap.has(successorNode.physicalNodeId)) {
+					keyRedistributionMap.set(successorNode.physicalNodeId, []);
+				}
+				keyRedistributionMap
+					.get(successorNode.physicalNodeId)
+					?.push(nodePosition);
+			}
+		}
+
+		// Insert virtual nodes into hash ring
+		for (const v of virtualNodes) {
+			this.ring.insert({
+				position: v.nodePosition,
+				virtualNodeId: v.virtualNodeId,
+				physicalNodeId: node.nodeId,
+			});
+		}
+
+		const redistributionTasks = [];
+
+		for (const [nodeId, positions] of keyRedistributionMap.entries()) {
+			const source = this.physicalNodeRegistry.get(nodeId);
+			const target = node;
+
+			if (!source) {
+				continue;
+			}
+
+			const task = this.redistributeKeysBetweenNodes(
+				source,
+				target,
+				positions
+			)
+				.then((count) => {
+					totalRedistributed += count;
+					console.log(
+						`Redistributed ${count} keys from node ${nodeId} to new node ${node.nodeId}`
+					);
+				})
+				.catch((error) => {
+					console.error(
+						`Error redistributing keys: ${JSON.stringify(error)}`
+					);
+				});
+
+			redistributionTasks.push(task);
+		}
+
+		await Promise.all(redistributionTasks);
+
+		this.physicalNodeRegistry.set(node.nodeId, node);
+		return this; // Allow chaining
 	}
 
 	removeNode(failedNode: PhysicalNode) {

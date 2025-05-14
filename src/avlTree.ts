@@ -218,6 +218,7 @@ class AVLTree {
 		return this.root;
 	}
 
+  // O(log n) complexity as it's searching through a BST
 	findNextClockwiseNode(hash: number) {
 		if (!this.root) {
 			return null;

@@ -19,16 +19,15 @@ type VisualizeHashRingParams = {
 	positions?: number;
 };
 
+// Mostly gen by Claude
 function visualizeHashRing(params: VisualizeHashRingParams) {
 	const { ring, getPhysicalNode, positions = 128 } = params;
 
-	// Create array of dots with desired length
 	const circle = new Array(positions).fill("·");
 	const ringNodes = ring.preOrder();
 
 	// Map node positions to circle positions
 	for (const node of ringNodes) {
-		// Scale the position to our circle size
 		const scaled = Math.floor((node.position / 0xffffffff) * positions);
 		circle[scaled] = "◆";
 	}
@@ -45,7 +44,6 @@ function visualizeHashRing(params: VisualizeHashRingParams) {
 
 	// Place dots around the circle
 	for (let i = 0; i < positions; i++) {
-		// Convert position to angle (in radians)
 		const angle = (i / positions) * 2 * Math.PI;
 
 		const x = Math.round(center.x + radius * Math.cos(angle));

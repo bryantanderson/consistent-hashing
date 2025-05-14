@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Default to 3 physical nodes
-NODES=${PHYSICAL_NODES:-3}
+NODES=${PHYSICAL_NODE_COUNT:-3}
 echo "Starting $NODES Redis instances..."
 
 # Build the concurrently command
