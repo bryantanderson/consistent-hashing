@@ -256,7 +256,7 @@ class HashRing {
     }
   }
 
-  // TODO: Test
+  // TODO: Thorough testing
   async addNode(node: PhysicalNode) {
     console.log(`Physical node ${node.nodeId} added to ring`);
 
@@ -304,6 +304,7 @@ class HashRing {
     return this; // Allow chaining
   }
 
+  // TODO: Thorough testing
   async removeNode(node: PhysicalNode) {
     console.log(`Physical node ${node.nodeId} has failed`);
 
