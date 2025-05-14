@@ -43,8 +43,9 @@ The deletion of a node results in the movement of data objects that fall within 
 
 This project uses MD5 as the hashing function, and uses 3 Redises as the cache "nodes". To start the project, run:
 
-`docker compose -f docker-compose.yml up` OR
 `npm run dev:redises` in one terminal, and `npm run dev` in a different terminal. Note that hot reloading is not enabled.
+
+Running via Docker Compose using `docker compose -f docker-compose.yml up` is available as an option, but currently does not work.
 
 By default, the application logging is fairly verbose. This can be disabled by setting `VERBOSE_LOGGING_ENABLED=false` in environment variables.
 
@@ -54,7 +55,7 @@ To get a value, write `GET <key>` to stdin.
 
 Writing `VISUALIZE` to stdin prints out a visualization of the hash ring and the nodes (virtual and physical) on it to stdout.
 
-Writing `TRIGGER_NODE_FAILURE` to stdin will be accepted, but it is currently unimplemented and will do nothing.
+Writing `TRIGGER_NODE_FAILURE` to stdin will trigger the failure of a random node, and subsequently a redistribution of keys.
 
 All other commands will be rejected by the application.
 
@@ -63,5 +64,5 @@ All other commands will be rejected by the application.
 -   [x] Implement node removal with key redistribution.
 -   [x] Implement node addition with key redistribution.
 -   [x] Refactor the `HashRing` class to use a self-binary Binary Search Tree, such as a Red-Black tree or an AVL tree.
--   [ ] Improve guide for running application with Docker Compose
+-   [x] Improve guide for running application with Docker Compose
 -   [x] Make the intro to Consistent Hashing more comprehensive
