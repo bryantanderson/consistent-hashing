@@ -137,9 +137,9 @@ class AVLTree {
 
 		node.height = this.computeNodeHeightFromChildren(node);
 
-		// This is simply the (height of left subtree - height of right subtree)
+		// "balance" is simply the (height of left subtree - height of right subtree)
 		// If the value is not 0, 1, or -1, then the node is unbalanced as the difference
-		// between the heights of the left and right subtrees is no longer <= 1. (AVL condition)
+		// between the heights of the left and right subtrees is no longer <= 1 (AVL condition)
 		const balance = node.subTreeHeightDifference;
 
 		// Left Left case, where the inserted node ends up on the left subtree
@@ -237,6 +237,9 @@ class AVLTree {
 
 		root.height = this.computeNodeHeightFromChildren(root);
 
+    // "balance" is simply the (height of left subtree - height of right subtree)
+		// If the value is not 0, 1, or -1, then the node is unbalanced as the difference
+		// between the heights of the left and right subtrees is no longer <= 1 (AVL condition)
 		const balance = root.subTreeHeightDifference;
 
 		// Left Left Case
