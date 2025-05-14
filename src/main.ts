@@ -22,7 +22,6 @@ async function main() {
     output: process.stdout,
     terminal: false,
   });
-
   const hashRing = new HashRing();
 
   rl.on("line", async (line) => {
@@ -42,7 +41,7 @@ async function main() {
           return;
         }
         console.log(`Triggering node failure...`);
-        // TODO: Trigger node failure
+        hashRing.triggerNodeFailure();
         break;
       }
       case 2: {

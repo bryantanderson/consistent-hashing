@@ -76,8 +76,8 @@ class HashRing {
           node.state = NODE_STATES.ACTIVE;
           node.pingFailures = 0;
         } catch (error) {
-          // If the node is inactive, hide it from the hash ring and rebalance
-          if (node.pingFailures >= PING_FAILURE_THRESHOLD) {
+          // If the node is inactive, remove it from the hash ring
+          if (node.state === NODE_STATES.ACTIVE && node.pingFailures >= PING_FAILURE_THRESHOLD) {
             node.state = NODE_STATES.INACTIVE;
             this.removeNode(node);
             continue;
@@ -365,15 +365,40 @@ class HashRing {
   }
 
   async shutdown() {
+    const shutdownTasks = [];
+
     for (const node of this.physicalNodeRegistry.values()) {
-      console.log(`Closing connection to cache node ${node.nodeId}...`);
-      try {
-        await node.client.quit();
-      } catch (error) {
-        console.error(`Error disconnecting from node: ${JSON.stringify(error)}`);
-      }
+      const task = async () => {
+        console.log(`Closing connection to cache node ${node.nodeId}...`);
+        try {
+          await node.client.quit();
+        } catch (error) {
+          console.error(`Error disconnecting from node: ${JSON.stringify(error)}`);
+        }
+      };
+      shutdownTasks.push(task());
     }
+
+    await Promise.all(shutdownTasks);
   }
+
+  // start region: Admin functions
+
+  triggerNodeFailure() {
+    const randomIndex = Math.floor(Math.random() * this.physicalNodeRegistry.size);
+    const node = Array.from(this.physicalNodeRegistry.values()).at(randomIndex);
+
+    // Should never happen
+    if (!node) {
+      return;
+    }
+
+    console.log(`Forcefully marking physical node ${node.nodeId} as inactive...`);
+    node.state = NODE_STATES.INACTIVE;
+    this.removeNode(node);
+  }
+
+  // end region: Admin functions
 }
 
 export { HashRing };
