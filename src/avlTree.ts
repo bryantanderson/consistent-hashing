@@ -1,9 +1,9 @@
-import { HashRingNode } from "./types";
+import { HashRingNode, Optional } from "./types";
 
 class AVLTreeNode {
 	key: HashRingNode;
-	leftChild: AVLTreeNode | null;
-	rightChild: AVLTreeNode | null;
+	leftChild: Optional<AVLTreeNode>;
+	rightChild: Optional<AVLTreeNode>;
 	height: number;
 
 	constructor(key: HashRingNode) {
@@ -36,7 +36,7 @@ class AVLTreeNode {
 // The solution for each case is composed of a series of left or right "rotations", which
 // brings the tree back into balance (the AVL height condition is re-established).
 class AVLTree {
-	root: AVLTreeNode | null;
+	root: Optional<AVLTreeNode>;
 
 	constructor(key?: HashRingNode) {
 		if (key) {
@@ -46,14 +46,14 @@ class AVLTree {
 		}
 	}
 
-	private getNodeHeight(node: AVLTreeNode | null) {
+	private getNodeHeight(node: Optional<AVLTreeNode>) {
 		if (!node) {
 			return 0;
 		}
 		return node.height;
 	}
 
-	private computeNodeHeightFromChildren(node: AVLTreeNode | null) {
+	private computeNodeHeightFromChildren(node: Optional<AVLTreeNode>) {
 		if (!node) {
 			return 0;
 		}
@@ -117,10 +117,10 @@ class AVLTree {
 		return y;
 	}
 
-	// Explanation: https://www.geeksforgeeks.org/insertion-in-an-avl-tree/
-	private insertNode(node: AVLTreeNode | null, key: HashRingNode) {
+	// Ref: https://www.geeksforgeeks.org/insertion-in-an-avl-tree/
+	private insertNode(node: Optional<AVLTreeNode>, key: HashRingNode) {
 		// Base case: If the node is null, we insert a new node in this position
-		if (node === null) {
+		if (!node) {
 			return new AVLTreeNode(key);
 		}
 
@@ -188,7 +188,99 @@ class AVLTree {
 		return node;
 	}
 
-	private preOrderTraversal(node: AVLTreeNode | null, keys: HashRingNode[]) {
+	private handleNodeDeletion(node: AVLTreeNode) {
+		// node with zero or one children
+		if (!node.leftChild || !node.rightChild) {
+			const temp = node.leftChild ? node.leftChild : node.rightChild;
+
+			// If the node has no children, remove it directly
+			if (!temp) {
+				return null;
+			}
+
+			// Otherwise, replace the node with the existing child
+			return temp;
+		}
+
+		// node with 2 children
+		// the smallest node in the right subtree is guaranteed to be greater
+		// than everything in the left subtree, and smaller than everything else
+		// in the right subtree. hence it should replace the deleted node to maintain BST property
+		const inOrderSuccessor = this.getLeftmostChildNode(node.rightChild);
+
+		node.key = inOrderSuccessor.key;
+
+		node.rightChild = this.deleteNode(
+			node.rightChild,
+			inOrderSuccessor.key
+		);
+		return node;
+	}
+
+	// Ref: https://www.geeksforgeeks.org/deletion-in-an-avl-tree/
+	private deleteNode(root: Optional<AVLTreeNode>, key: HashRingNode) {
+		if (!root) {
+			return root;
+		}
+
+		if (key.position < root.key.position) {
+			root.leftChild = this.deleteNode(root.leftChild, key);
+		} else if (key.position > root.key.position) {
+			root.rightChild = this.deleteNode(root.rightChild, key);
+		} else {
+			root = this.handleNodeDeletion(root);
+		}
+
+		if (!root) {
+			return root;
+		}
+
+		root.height = this.computeNodeHeightFromChildren(root);
+
+		const balance = root.subTreeHeightDifference;
+
+		// Left Left Case
+		if (
+			balance > 1 &&
+			root.leftChild &&
+			root.leftChild.subTreeHeightDifference >= 0
+		) {
+			return this.rightRotate(root);
+		}
+
+		// Left Right Case
+		if (
+			balance > 1 &&
+			root.leftChild &&
+			root.leftChild.subTreeHeightDifference < 0
+		) {
+			root.leftChild = this.leftRotate(root.leftChild);
+			return this.rightRotate(root);
+		}
+
+		// Right Right Case
+		if (
+			balance < -1 &&
+			root.rightChild &&
+			root.rightChild.subTreeHeightDifference <= 0
+		) {
+			return this.leftRotate(root);
+		}
+
+		// Right Left Case
+		if (
+			balance < -1 &&
+			root.rightChild &&
+			root.rightChild.subTreeHeightDifference > 0
+		) {
+			root.rightChild = this.rightRotate(root.rightChild);
+			return this.leftRotate(root);
+		}
+
+		return root;
+	}
+
+	private preOrderTraversal(node: Optional<AVLTreeNode>, keys: HashRingNode[]) {
 		if (!node) {
 			return keys;
 		}
@@ -198,12 +290,22 @@ class AVLTree {
 		return keys;
 	}
 
+	private getLeftmostChildNode(node: AVLTreeNode) {
+		let current = node;
+
+		while (current.leftChild) {
+			current = current.leftChild;
+		}
+
+		return current;
+	}
+
 	// As the height of the tree is O(log n), the time complexity of this operation is O(log n).
-	private findSmallestNode() {
+	private getSmallestNode() {
 		if (!this.root) {
 			return null;
 		}
-  
+
 		let current = this.root;
 
 		while (current.leftChild) {
@@ -218,15 +320,15 @@ class AVLTree {
 		return this.root;
 	}
 
-  // O(log n) complexity as it's searching through a BST
+	// O(log n) complexity as it's searching through a BST
 	findNextClockwiseNode(hash: number) {
 		if (!this.root) {
 			return null;
 		}
 
 		// We want to find the next successor node in the clockwise duration
-		let current: AVLTreeNode | null = this.root;
-		let successor: AVLTreeNode | null = null;
+		let current: Optional<AVLTreeNode> = this.root;
+		let successor: Optional<AVLTreeNode> = null;
 
 		while (current) {
 			// If current node is >= hash, it's a potential successor
@@ -246,7 +348,7 @@ class AVLTree {
 
 		// If no successor node is found, return the smallest node in the tree
 		// This means we're wrapping around the ring to the first (smallest) node
-		return this.findSmallestNode();
+		return this.getSmallestNode();
 	}
 
 	preOrder() {

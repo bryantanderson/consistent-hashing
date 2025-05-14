@@ -16,4 +16,6 @@ type PhysicalNode = {
 	state: NodeState;
 };
 
-export { HashRingNode, PhysicalNode };
+type Optional<T> = T | null | undefined;
+
+export { HashRingNode, Optional, PhysicalNode };
